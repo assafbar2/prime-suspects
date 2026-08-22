@@ -184,25 +184,25 @@ function reducer(state: GameState, action: Action): GameState {
       if (def.kind === 'static') {
         const r = resolveStatic(action.id, alive, culprit)
         eliminated = r.eliminated
-        headline = `${def.label} — ${r.answer ? 'YES' : 'NO'}`
+        headline = `${def.label} → ${r.answer ? 'YES' : 'NO'} about the culprit. ${
+          r.answer ? 'Non-matching' : 'Matching'
+        } suspects walk:`
       } else if (def.kind === 'medianTrap') {
         const r = resolveMedianTrap(alive, culprit)
         eliminated = r.eliminated
-        headline = `Above the survivors’ median (${r.median})? — ${r.answer ? 'YES' : 'NO'}`
+        headline = `Culprit sits ${
+          r.answer ? 'above' : 'below'
+        } the survivors' median (${r.median}). The ${r.answer ? 'lower' : 'upper'} half walks:`
       } else if (def.kind === 'alibi') {
-        if (state.alibiPicks.length !== 2) {
+        if (!state.alibiMode && state.alibiPicks.length === 0) {
           return { ...state, alibiMode: true, alibiPicks: [] }
         }
-        const outcome = resolveAlibi(
-          [state.alibiPicks[0], state.alibiPicks[1]],
-          state.caseFile.culprit,
-          alive,
-        )
+        const outcome = resolveAlibi(state.alibiPicks[0], culprit, alive)
         eliminated = outcome.eliminated
         headline =
-          outcome.type === 'oneOfThem'
-            ? 'Alibi holds — everyone else walks!'
-            : 'Alibi fails — both named walk.'
+          outcome.type === 'isCulprit'
+            ? `Alibi refused — ${state.alibiPicks[0]} IS the culprit. Everyone else walks!`
+            : `${state.alibiPicks[0]} has an alibi and walks free.`
         alibiMode = false
       } else if (def.kind === 'confessor') {
         const rng = mulberry32((state.caseFile.seed ^ state.chipsLeft) >>> 0)
@@ -224,12 +224,8 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'PICK_ALIBI': {
       if (!state.alibiMode) return state
-      const has = state.alibiPicks.includes(action.n)
-      const picks = has
-        ? state.alibiPicks.filter((n) => n !== action.n)
-        : state.alibiPicks.length < 2
-          ? [...state.alibiPicks, action.n]
-          : [state.alibiPicks[1], action.n]
+      const picks =
+        state.alibiPicks.includes(action.n) ? [] : [action.n]
       return { ...state, alibiPicks: picks }
     }
 

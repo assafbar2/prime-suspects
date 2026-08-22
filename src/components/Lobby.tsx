@@ -84,6 +84,20 @@ export function Lobby({ stats, onStart }: Props) {
             more stars: beat the par for three.
           </li>
         </ol>
+        <div className="legend" role="list" aria-label="Probe tier legend">
+          <span role="listitem">
+            <i className="gem gem--beat" aria-hidden /> beat — blunt questions
+          </span>
+          <span role="listitem">
+            <i className="gem gem--detective" aria-hidden /> detective — classic tells
+          </span>
+          <span role="listitem">
+            <i className="gem gem--specialist" aria-hidden /> specialist — surgical strikes
+          </span>
+          <span role="listitem">
+            <i className="gem gem--wildcard" aria-hidden /> wildcard — bends the rules
+          </span>
+        </div>
       </details>
     </div>
   )

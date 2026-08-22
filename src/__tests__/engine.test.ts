@@ -173,17 +173,18 @@ describe('resolution', () => {
     expect(no.eliminated).toEqual([99])
   })
 
-  it('alibi: both walk when culprit elsewhere', () => {
-    const r = resolveAlibi([49, 810], 128, lineup)
-    expect(r.type).toBe('bothWalk')
-    expect(r.type === 'bothWalk' && r.eliminated).toEqual([49, 810])
+  it('alibi: named innocent walks alone', () => {
+    const r = resolveAlibi(810, 128, lineup)
+    expect(r.type).toBe('walks')
+    expect(r.eliminated).toEqual([810])
   })
 
-  it('alibi: everyone else walks when culprit named', () => {
-    const r = resolveAlibi([128, 810], 128, lineup)
-    expect(r.type).toBe('oneOfThem')
-    const rest = r.type === 'oneOfThem' ? r.eliminated : []
-    expect(rest.sort((a, b) => a - b)).toEqual([49, 64, 121, 315, 343, 512, 625, 729, 961, 1000].sort((a, b) => a - b))
+  it('alibi: naming the culprit clears the room', () => {
+    const r = resolveAlibi(128, 128, lineup)
+    expect(r.type).toBe('isCulprit')
+    expect(r.eliminated.sort((a, b) => a - b)).toEqual(
+      lineup.filter((n) => n !== 128).sort((a, b) => a - b),
+    )
   })
 
   it('confessor returns a true line about the culprit', () => {

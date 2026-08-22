@@ -2,20 +2,19 @@ import { getProbe } from './probes'
 import { confessionsFor } from './probes'
 
 export type AlibiOutcome =
-  | { type: 'bothWalk'; eliminated: number[] }
-  | { type: 'oneOfThem'; eliminated: number[] }
+  | { type: 'walks'; eliminated: number[] }
+  | { type: 'isCulprit'; eliminated: number[] }
 
 /**
- * Alibi probe: the player names two suspects.
- *  - If the culprit is one of them → everyone ELSE walks (huge).
- *  - If not → both named suspects walk (still decent).
+ * Alibi probe: the player names ONE suspect.
+ *  - Named suspect is not the culprit → they walk alone.
+ *  - Named suspect IS the culprit → everyone ELSE walks (case cracked).
  */
-export function resolveAlibi(picked: [number, number], culprit: number, suspects: number[]): AlibiOutcome {
-  const named = new Set(picked)
-  if (named.has(culprit)) {
-    return { type: 'oneOfThem', eliminated: suspects.filter((n) => !named.has(n)) }
+export function resolveAlibi(named: number, culprit: number, survivors: number[]): AlibiOutcome {
+  if (named === culprit) {
+    return { type: 'isCulprit', eliminated: survivors.filter((n) => n !== culprit) }
   }
-  return { type: 'bothWalk', eliminated: [...named] }
+  return { type: 'walks', eliminated: [named] }
 }
 
 /**

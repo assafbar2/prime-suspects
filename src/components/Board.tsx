@@ -35,6 +35,13 @@ export function Board({ state, dispatch }: Props) {
     if (state.alibiMode) {
       sfx.click()
       dispatch({ type: 'PICK_ALIBI', n })
+      const alibiId = state.hand.find(
+        (h) => getProbe(h).kind === 'alibi' && !state.usedIds.includes(h),
+      )
+      if (alibiId) {
+        sfx.flick()
+        dispatch({ type: 'USE_PROBE', id: alibiId })
+      }
       return
     }
     if (state.accusation != null || state.phase === 'verdict') return
@@ -43,12 +50,6 @@ export function Board({ state, dispatch }: Props) {
   }
 
   function probeUse(id: string) {
-    const def = getProbe(id)
-    if (def.kind === 'alibi' && !state.alibiMode && state.alibiPicks.length !== 2) {
-      sfx.click()
-      dispatch({ type: 'USE_PROBE', id }) // enters targeting mode
-      return
-    }
     sfx.flick()
     dispatch({ type: 'USE_PROBE', id })
   }
@@ -97,11 +98,13 @@ export function Board({ state, dispatch }: Props) {
       {state.alibiMode && (
         <div className="alibibar">
           <span>
-            Name two suspects for the alibi check{' '}
-            <strong>
-              ({state.alibiPicks.length}/2 picked:
-              {state.alibiPicks.map((p) => ` ${p}`).join(',') || ' —'})
-            </strong>
+            Name <strong>one</strong> suspect — click a card and the check fires
+            {state.alibiPicks.length > 0 && (
+              <>
+                {' '}
+                (named: <strong>{state.alibiPicks[0]}</strong>)
+              </>
+            )}
           </span>
           <button
             type="button"

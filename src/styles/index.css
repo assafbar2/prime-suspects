@@ -427,6 +427,46 @@ strong {
   line-height: 1.6;
 }
 
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  font-size: 14.5px;
+  color: rgba(246, 239, 224, 0.7);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gem {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.gem--beat {
+  background: radial-gradient(circle at 32% 28%, #ffe0b0, var(--gem-beat) 50%, #3a2410 95%);
+}
+
+.gem--detective {
+  background: radial-gradient(circle at 32% 28%, #d5ecff, var(--gem-detective) 50%, #16283a 95%);
+}
+
+.gem--specialist {
+  background: radial-gradient(circle at 32% 28%, #ecd9ff, var(--gem-specialist) 50%, #2b1c3f 95%);
+}
+
+.gem--wildcard {
+  background: radial-gradient(circle at 32% 28%, #fff6cf, var(--gold) 50%, #5c470e 95%);
+}
+
 /* ── Probe cards ──────────────────────────────────────────────── */
 
 .probe {

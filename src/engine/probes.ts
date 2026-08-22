@@ -101,7 +101,7 @@ export const PROBES: ProbeDef[] = [
     kind: 'alibi',
     label: 'Call an alibi',
     face: '👥',
-    note: 'Name two suspects. If neither is the culprit, both walk. If one is — everyone else walks.',
+    note: 'Name one suspect. Not guilty → they walk. Guilty → everyone else walks.',
   }),
   P({
     id: 'confessor',
