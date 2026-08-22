@@ -3,5 +3,6 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/prime-suspects/',
+  // Relative base: works at a GitHub Pages subpath AND at a Vercel root domain.
+  base: './',
 })
