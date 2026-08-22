@@ -45,6 +45,8 @@ export interface GameState {
   picks: string[]
   hand: string[]
   usedIds: string[]
+  /** Established facts about the culprit, in play order */
+  facts: string[]
   chipsLeft: number
   crossedOff: number[]
   resolution: Resolution | null
@@ -119,6 +121,7 @@ export function initialState(): GameState {
     picks: [],
     hand: [],
     usedIds: [],
+    facts: [],
     chipsLeft: CHIPS_PER_CASE,
     crossedOff: [],
     resolution: null,
@@ -179,6 +182,7 @@ function reducer(state: GameState, action: Action): GameState {
 
       let eliminated: number[] = []
       let headline = ''
+      let fact = ''
       let confession: string | null = null
       let alibiMode = state.alibiMode
 
@@ -188,12 +192,14 @@ function reducer(state: GameState, action: Action): GameState {
         headline = `${def.label} → ${r.answer ? 'YES' : 'NO'} about the culprit. ${
           r.answer ? 'Non-matching' : 'Matching'
         } suspects walk:`
+        fact = `${def.label} → ${r.answer ? 'YES' : 'NO'}`
       } else if (def.kind === 'medianTrap') {
         const r = resolveMedianTrap(alive, culprit)
         eliminated = r.eliminated
         headline = `Culprit sits ${
           r.answer ? 'above' : 'below'
         } the survivors' median (${r.median}). The ${r.answer ? 'lower' : 'upper'} half walks:`
+        fact = `Median ${r.median} → culprit ${r.answer ? 'above' : 'below'}`
       } else if (def.kind === 'alibi') {
         if (!state.alibiMode && state.alibiPicks.length === 0) {
           return { ...state, alibiMode: true, alibiPicks: [] }
@@ -204,16 +210,19 @@ function reducer(state: GameState, action: Action): GameState {
           outcome.type === 'isCulprit'
             ? `Alibi refused — ${state.alibiPicks[0]} IS the culprit. Everyone else walks!`
             : `${state.alibiPicks[0]} has an alibi and walks free.`
+        fact = outcome.type === 'isCulprit' ? `${state.alibiPicks[0]} = culprit` : `${state.alibiPicks[0]} innocent`
         alibiMode = false
       } else if (def.kind === 'confessor') {
         const rng = mulberry32((state.caseFile.seed ^ state.chipsLeft) >>> 0)
         confession = resolveConfessor(state.caseFile.culprit, rng() * 1000)
         headline = 'The suspect talks…'
+        fact = `🕯 ${confession}`
       }
 
       return {
         ...state,
         usedIds: [...state.usedIds, action.id],
+        facts: fact ? [...state.facts, fact] : state.facts,
         chipsLeft: state.chipsLeft - 1,
         crossedOff: [...new Set([...state.crossedOff, ...eliminated])],
         resolution: { probeId: action.id, eliminated, headline },

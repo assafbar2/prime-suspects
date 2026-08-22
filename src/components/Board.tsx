@@ -111,6 +111,17 @@ export function Board({ state, dispatch }: Props) {
         </div>
       </header>
 
+      {state.facts.length > 0 && (
+        <section className="dossier" aria-label="Established facts about the culprit">
+          <span className="dossier__title">CULPRIT DOSSIER</span>
+          {state.facts.map((f, i) => (
+            <span key={i} className="dossier__fact">
+              {f}
+            </span>
+          ))}
+        </section>
+      )}
+
       {state.alibiMode && (
         <div className="alibibar">
           <span>

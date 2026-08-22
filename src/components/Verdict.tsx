@@ -68,7 +68,15 @@ export function Verdict({ state, dispatch }: Props) {
         {r.win ? ' — exactly as you said' : `, not ${r.guess}`}
       </p>
 
-      {!r.win && <LossExplain culprit={cf.culprit} guess={r.guess!} dealt={cf.deal} />}
+      {!r.win && (
+        <LossExplain
+          culprit={cf.culprit}
+          guess={r.guess!}
+          dealt={cf.deal}
+          held={state.hand}
+          played={state.usedIds}
+        />
+      )}
 
       <div className="verdict__stars" aria-label={`${r.stars} of 3 stars`}>
         {[0, 1, 2].map((i) => (
@@ -135,10 +143,14 @@ function LossExplain({
   culprit,
   guess,
   dealt,
+  held,
+  played,
 }: {
   culprit: number
   guess: number
   dealt: string[]
+  held: string[]
+  played: string[]
 }) {
   const sep = findSeparatingProbe(culprit, guess)
   if (!sep || !sep.test) {
@@ -151,13 +163,19 @@ function LossExplain({
   }
   const truth = sep.test(culprit)
   const yours = sep.test(guess)
-  const wasDealt = dealt.includes(sep.id)
+  let where: string
+  if (held.includes(sep.id) && !played.includes(sep.id)) {
+    where = 'You were holding it — unplayed.'
+  } else if (dealt.includes(sep.id)) {
+    where = 'It sat on the table, undealt.'
+  } else {
+    where = 'It wasn’t dealt tonight.'
+  }
   return (
     <p className="verdict__tell">
       The tell you missed: <strong>{sep.label}</strong> — the culprit answers{' '}
       <strong>{truth ? 'YES' : 'NO'}</strong>, your {guess} says{' '}
-      <strong>{yours ? 'YES' : 'NO'}</strong>.
-      {wasDealt ? ' It was on the table tonight.' : ' It wasn’t dealt tonight.'}
+      <strong>{yours ? 'YES' : 'NO'}</strong>. {where}
     </p>
   )
 }

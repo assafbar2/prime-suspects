@@ -746,6 +746,40 @@ strong {
   animation: riseIn 0.45s var(--ease-snap) both;
 }
 
+/* ── Culprit dossier: every established fact, in play order ──── */
+
+.dossier {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(212, 175, 55, 0.4);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.dossier__title {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  color: rgba(212, 175, 55, 0.75);
+  margin-right: 4px;
+}
+
+.dossier__fact {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  color: rgba(246, 239, 224, 0.9);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.06));
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  padding: 5px 13px;
+  white-space: nowrap;
+}
+
 .board__bar {
   display: flex;
   align-items: center;
