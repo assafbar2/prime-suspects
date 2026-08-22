@@ -22,6 +22,35 @@ progress stays on your device.
 
 **Stars:** solve under par for ★★★ · on par for ★★ · with your last chip for ★.
 
+## Explain it like I'm 10
+
+**You're a detective in a room with 12 numbers. One of them did a crime. Find it!**
+
+1. **Pick your tools (the draft).** You get cards that each ask a yes/no question
+   about the mystery number: *"Are you even?" "Do you have a 7 in you?" "Are you
+   a perfect square?"* Pick your favorite 6.
+
+2. **Ask questions (spend chips).** You have 5 chips. Play a card and the mystery
+   number **answers honestly**.
+   - If the answer is YES → every number that would answer NO gets crossed off. Bye!
+   - If the answer is NO → every number that would answer YES gets crossed off. Bye!
+
+3. **Why this works:** every question cuts the room into "matches" and "doesn't
+   match." The culprit always stays (it's telling the truth!), but a bunch of
+   innocent numbers leave. Ask smart questions and the room gets tiny fast.
+
+4. **Catch the culprit.** When only one number is left — or when you're ready to
+   take a risk — point at it and stamp **ACCUSED**. Right? ★★★ Wrong? Streak gone.
+
+**The secret trick:** good questions split the remaining suspects *in half*.
+Asking "are you above 500?" when everyone left is already above 500 is useless —
+the card goes DEAD and costs you nothing. Asking "are you divisible by 7?" when
+two suspects are left and only one appears in the 7 times-table… that's how you
+catch the criminal.
+
+That's the whole game: **ask half-questions, watch the room shrink, catch your
+number.**
+
 ## The probes (~30)
 
 - **Beat cops** — even? above 500? ends in 0/5? odd digit sum? wears a seven?

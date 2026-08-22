@@ -42,7 +42,7 @@ export default function App() {
       <footer className="house">
         <span>Prime Suspects</span>
         <span aria-hidden>·</span>
-        <span>v0.1.0 · built {__BUILD_DATE__}</span>
+        <span>v{__APP_VERSION__} · built {__BUILD_DATE__}</span>
         <span aria-hidden>·</span>
         <span className="house__motto">the house always does the math</span>
       </footer>

@@ -189,9 +189,10 @@ function reducer(state: GameState, action: Action): GameState {
       if (def.kind === 'static') {
         const r = resolveStatic(action.id, alive, culprit)
         eliminated = r.eliminated
-        headline = `${def.label} → ${r.answer ? 'YES' : 'NO'} about the culprit. ${
-          r.answer ? 'Non-matching' : 'Matching'
-        } suspects walk:`
+        headline =
+          r.answer
+            ? `Culprit answers YES to “${def.label}” — everyone who would answer NO walks:`
+            : `Culprit answers NO to “${def.label}” — everyone who would answer YES walks:`
         fact = `${def.label} → ${r.answer ? 'YES' : 'NO'}`
       } else if (def.kind === 'medianTrap') {
         const r = resolveMedianTrap(alive, culprit)
