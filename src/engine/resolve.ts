@@ -41,7 +41,10 @@ export function resolveMedianTrap(
 /** Confessor: reveals one true dossier line about the culprit; eliminates nobody. */
 export function resolveConfessor(culprit: number, rngPick: number): string {
   const lines = confessionsFor(culprit)
-  return lines[rngPick % lines.length]
+  const i = Math.floor(Math.abs(rngPick)) % lines.length
+  const line = lines[i]
+  if (!line) throw new Error(`no confession available for culprit ${culprit}`)
+  return line
 }
 
 export function isStaticProbe(id: string): boolean {

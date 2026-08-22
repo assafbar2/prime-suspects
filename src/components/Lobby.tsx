@@ -72,7 +72,7 @@ export function Lobby({ stats, onStart }: Props) {
         <summary>How to play</summary>
         <ol>
           <li>
-            <strong>Draft.</strong> Six probes from ten dealt cards. Beat cops are blunt;
+            <strong>Draft.</strong> Six probes from eleven dealt cards. Beat cops are blunt;
             specialists are surgical; wildcards bend the rules.
           </li>
           <li>

@@ -25,7 +25,7 @@ export function Draft({ state, dispatch }: Props) {
       <header className="draft__head">
         <h2 className="draft__title">Assemble your kit</h2>
         <p className="draft__sub">
-          Pick <strong>{HAND_SIZE}</strong> probes from the ten on the table. Choose your
+          Pick <strong>{HAND_SIZE}</strong> probes from the eleven on the table. Choose your
           detectives wisely — you get five chips to spend them.
         </p>
       </header>

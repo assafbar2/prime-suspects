@@ -209,6 +209,16 @@ describe('resolution', () => {
     expect(confessionsFor(128)).toContain(line)
     expect(line.length).toBeGreaterThan(0)
   })
+
+  it('confessor tolerates fractional picks (regression: undefined badge)', () => {
+    for (const culprit of [7, 128, 496, 999]) {
+      for (const pick of [0, 3.5, 723.412913, 1e-9]) {
+        const line = resolveConfessor(culprit, pick)
+        expect(typeof line).toBe('string')
+        expect(line.length).toBeGreaterThan(0)
+      }
+    }
+  })
 })
 
 describe('greedy par solver', () => {
