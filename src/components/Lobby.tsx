@@ -155,7 +155,7 @@ function Logo() {
         opacity=".85"
         fontFamily="Cinzel, Georgia, serif"
       >
-        EST. ℔
+        EST. MMXXVI
       </text>
     </svg>
   )

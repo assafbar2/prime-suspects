@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { findSeparatingProbe } from '../engine/fairness'
 import { sfx } from '../audio/sfx'
 import type { Action, GameState } from '../game/store'
 
@@ -33,7 +34,7 @@ export function Verdict({ state, dispatch }: Props) {
   function shareText(): string {
     const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars)
     const label = cf.isDaily ? `Daily ${cf.dateKey}` : `Case №${String(cf.caseNumber).padStart(4, '0')}`
-    return `Prime Suspects — ${label}\n${stars} · ${r.probesUsed}/${5} chips (par ${r.par})${
+    return `Prime Suspects — ${label}\n${stars} · ${r.probesUsed}/5 chips (par ${r.par})${
       state.stats.streak > 1 ? `\nStreak: ${state.stats.streak} 🔥` : ''
     }`
   }
@@ -66,6 +67,8 @@ export function Verdict({ state, dispatch }: Props) {
         The culprit was <strong>{cf.culprit}</strong>
         {r.win ? ' — exactly as you said' : `, not ${r.guess}`}
       </p>
+
+      {!r.win && <LossExplain culprit={cf.culprit} guess={r.guess!} dealt={cf.deal} />}
 
       <div className="verdict__stars" aria-label={`${r.stars} of 3 stars`}>
         {[0, 1, 2].map((i) => (
@@ -121,5 +124,40 @@ export function Verdict({ state, dispatch }: Props) {
         </button>
       </div>
     </div>
+  )
+}
+
+/**
+ * On a mistrial, name the property that proves the accused number innocent:
+ * the catalog probe whose truthful answer differs between culprit and guess.
+ */
+function LossExplain({
+  culprit,
+  guess,
+  dealt,
+}: {
+  culprit: number
+  guess: number
+  dealt: string[]
+}) {
+  const sep = findSeparatingProbe(culprit, guess)
+  if (!sep || !sep.test) {
+    return (
+      <p className="verdict__tell">
+        Your number agreed with the culprit on every question in the deck — a true double. Bad
+        luck; even the house couldn’t have told them apart.
+      </p>
+    )
+  }
+  const truth = sep.test(culprit)
+  const yours = sep.test(guess)
+  const wasDealt = dealt.includes(sep.id)
+  return (
+    <p className="verdict__tell">
+      The tell you missed: <strong>{sep.label}</strong> — the culprit answers{' '}
+      <strong>{truth ? 'YES' : 'NO'}</strong>, your {guess} says{' '}
+      <strong>{yours ? 'YES' : 'NO'}</strong>.
+      {wasDealt ? ' It was on the table tonight.' : ' It wasn’t dealt tonight.'}
+    </p>
   )
 }

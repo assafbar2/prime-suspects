@@ -1,5 +1,9 @@
 import { intIn, mulberry32, sampleWithoutReplacement, shuffled, type Rng } from './rng'
 import { STATIC_PROBES, getProbe, type ProbeDef } from './probes'
+import { CHIPS_PER_CASE, HAND_SIZE, LINEUP_SIZE, BEST_DRAFT_TARGET, WORST_DRAFT_TARGET } from './constants'
+import { bestDraftSurvivors, worstDraftSurvivors } from './fairness'
+
+export { CHIPS_PER_CASE, HAND_SIZE, LINEUP_SIZE, BEST_DRAFT_TARGET, WORST_DRAFT_TARGET }
 
 export interface CaseFile {
   seed: number
@@ -13,10 +17,6 @@ export interface CaseFile {
   /** Greedy-optimal probe count for a perfect run */
   par: number
 }
-
-export const LINEUP_SIZE = 12
-export const CHIPS_PER_CASE = 5
-export const HAND_SIZE = 6
 
 // ── Curated pools: numbers with personality ──────────────────
 
@@ -114,12 +114,18 @@ function generateLineup(rng: Rng): number[] {
 }
 
 export function generateCase(seed: number, caseNumber: number, isDaily: boolean, dateKey?: string): CaseFile {
-  for (let attempt = 0; attempt < 64; attempt++) {
+  for (let attempt = 0; attempt < 160; attempt++) {
     const rng = mulberry32((seed + attempt * 7919) >>> 0)
     const lineup = generateLineup(rng)
     const culprit = lineup[intIn(rng, 0, lineup.length - 1)]
     const { par } = greedyPar(lineup)
     if (par < 2 || par > CHIPS_PER_CASE - 1) continue
+    const deal = buildDeal(rng)
+    // Fairness guarantees:
+    //  - BEST: some six-card draft can crack the case to exactly one suspect
+    //  - WORST: even the clumsiest draft narrows the room to ≤ WORST_DRAFT_TARGET
+    if (bestDraftSurvivors(deal, lineup, culprit) > BEST_DRAFT_TARGET) continue
+    if (worstDraftSurvivors(deal, lineup, culprit) > WORST_DRAFT_TARGET) continue
     return {
       seed: (seed + attempt * 7919) >>> 0,
       caseNumber,
@@ -127,7 +133,7 @@ export function generateCase(seed: number, caseNumber: number, isDaily: boolean,
       dateKey,
       lineup: shuffled(rng, lineup),
       culprit,
-      deal: buildDeal(rng),
+      deal,
       par,
     }
   }

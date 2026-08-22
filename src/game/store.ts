@@ -105,6 +105,7 @@ export type Action =
   | { type: 'PICK_ALIBI'; n: number }
   | { type: 'CANCEL_ALIBI' }
   | { type: 'ACCUSE'; n: number }
+  | { type: 'CANCEL_ACCUSE' }
   | { type: 'CONFIRM_ACCUSE' }
   | { type: 'DISMISS_RESOLUTION' }
   | { type: 'NEXT_CASE' }
@@ -234,6 +235,9 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'ACCUSE':
       return { ...state, accusation: action.n }
+
+    case 'CANCEL_ACCUSE':
+      return { ...state, accusation: null }
 
     case 'CONFIRM_ACCUSE': {
       if (!state.caseFile || state.accusation == null) return state

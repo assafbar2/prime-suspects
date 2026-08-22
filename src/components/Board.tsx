@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { CHIPS_PER_CASE } from '../engine/caseGen'
 import { getProbe } from '../engine/probes'
+import { isLiveStatic } from '../engine/fairness'
 import { sfx } from '../audio/sfx'
 import type { Action, GameState } from '../game/store'
 import type { SuspectState } from './SuspectCard'
@@ -61,7 +62,22 @@ export function Board({ state, dispatch }: Props) {
     return 'alive'
   }
 
-  const aliveCount = cf.lineup.filter((n) => !crossed.has(n)).length
+  const alive = cf.lineup.filter((n) => !crossed.has(n))
+  const aliveCount = alive.length
+
+  /**
+   * A probe is dead when it can no longer split the room — playing it would
+   * waste a chip, so we refuse to spend one. Uses only public information:
+   * whether the surviving numbers still disagree about the question.
+   */
+  function probeBlocked(id: string): boolean {
+    if (state.usedIds.includes(id)) return false
+    if (aliveCount < 2) return true // nobody left to split — time to accuse
+    const def = getProbe(id)
+    if (def.kind === 'static' && def.test) return !isLiveStatic(def, alive)
+    if (def.kind === 'confessor') return false
+    return false // median trap & alibi can always act while two or more stand
+  }
 
   return (
     <div className={`board ${state.alibiMode ? 'board--alibi' : ''}`}>
@@ -135,6 +151,7 @@ export function Board({ state, dispatch }: Props) {
               key={id}
               id={id}
               used={state.usedIds.includes(id)}
+              blocked={probeBlocked(id)}
               onClick={() => probeUse(id)}
             />
           ))}
@@ -180,7 +197,7 @@ function ConfirmAccuse({
 }) {
   useEffect(() => {
     function esc(e: KeyboardEvent) {
-      if (e.key === 'Escape') dispatch({ type: 'ACCUSE', n: -1 })
+      if (e.key === 'Escape') dispatch({ type: 'CANCEL_ACCUSE' })
     }
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
@@ -194,9 +211,17 @@ function ConfirmAccuse({
       role="dialog"
       aria-modal="true"
       aria-label="Confirm accusation"
-      onClick={() => dispatch({ type: 'ACCUSE', n: -1 })}
+      onClick={() => dispatch({ type: 'CANCEL_ACCUSE' })}
     >
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="dialog__close"
+          aria-label="Close"
+          onClick={() => dispatch({ type: 'CANCEL_ACCUSE' })}
+        >
+          ✕
+        </button>
         <h3>Slam the stamp?</h3>
         <p className="dialog__big">{n}</p>
         {!alive && <p className="dialog__warn">That number already walked out.</p>}
@@ -207,7 +232,7 @@ function ConfirmAccuse({
             className="btn btn--ghost"
             onClick={() => {
               sfx.click()
-              dispatch({ type: 'ACCUSE', n: -1 })
+              dispatch({ type: 'CANCEL_ACCUSE' })
             }}
           >
             Keep looking
