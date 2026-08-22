@@ -17,6 +17,7 @@ import {
   CHIPS_PER_CASE,
   HAND_SIZE,
   LINEUP_SIZE,
+  BEST_DRAFT_TARGET,
   buildDeal,
   dailySeed,
   generateCase,
@@ -24,6 +25,7 @@ import {
   resolveStatic,
   todayDateKey,
 } from '../engine/caseGen'
+import { bestDraftSurvivors } from '../engine/fairness'
 import { mulberry32 } from '../engine/rng'
 import { resolveAlibi, resolveConfessor, resolveMedianTrap } from '../engine/resolve'
 
@@ -142,6 +144,21 @@ describe('case generation', () => {
   it('daily seeds differ by date and match date key format', () => {
     expect(dailySeed('2026-08-21')).not.toBe(dailySeed('2026-08-22'))
     expect(todayDateKey(new Date(2026, 7, 21))).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('buildDeal deals a returning player their kit verbatim', () => {
+    const kit = ['even', 'div7', 'square', 'powerOf2', 'prime', 'contains7']
+    const deal = buildDeal(mulberry32(7), kit)
+    expect(deal).toHaveLength(11)
+    for (const id of kit) expect(deal, `missing ${id}`).toContain(id)
+    expect(deal.filter((id) => getProbe(id).tier === 'wildcard')).toHaveLength(2)
+  })
+
+  it('kit-based cases still satisfy the fairness guarantee', () => {
+    const kit = ['even', 'gt500', 'digitSumOdd', 'div3', 'square', 'contains7']
+    const c = generateCase(424242, 1, false, undefined, kit)
+    for (const id of kit) expect(c.deal).toContain(id)
+    expect(bestDraftSurvivors(c.deal, c.lineup, c.culprit)).toBeLessThanOrEqual(BEST_DRAFT_TARGET)
   })
 })
 

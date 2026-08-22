@@ -1,5 +1,5 @@
 import { intIn, mulberry32, sampleWithoutReplacement, shuffled, type Rng } from './rng'
-import { STATIC_PROBES, getProbe, type ProbeDef } from './probes'
+import { PROBE_BY_ID, STATIC_PROBES, getProbe, type ProbeDef } from './probes'
 import { CHIPS_PER_CASE, HAND_SIZE, LINEUP_SIZE, BEST_DRAFT_TARGET, WORST_DRAFT_TARGET } from './constants'
 import { bestDraftSurvivors, worstDraftSurvivors } from './fairness'
 
@@ -43,18 +43,38 @@ function interestingPool(): number[] {
 
 // ── Deal construction ────────────────────────────────────────
 
-export function buildDeal(rng: Rng): string[] {
-  const byTier = (t: string) => shuffled(rng, STATIC_PROBES.filter((p) => p.tier === t))
+export function buildDeal(rng: Rng, preferred: readonly string[] = []): string[] {
+  const chosen: string[] = []
+  const add = (id: string) => {
+    if (!chosen.includes(id)) chosen.push(id)
+  }
+  const tierCount = (t: ProbeDef['tier']) =>
+    chosen.reduce((n, id) => n + (getProbe(id).tier === t ? 1 : 0), 0)
 
-  // Wildcards: always offer a choice of two.
-  const wc = sampleWithoutReplacement(rng, ['medianTrap', 'alibi', 'confessor'], 2)
+  // A returning player's kept kit leads the deal, verbatim where legal.
+  for (const id of preferred) {
+    if (PROBE_BY_ID.has(id)) add(id)
+  }
 
-  return shuffled(rng, [
-    ...sampleWithoutReplacement(rng, byTier('beat'), 3).map((p) => p.id),
-    ...sampleWithoutReplacement(rng, byTier('detective'), 4).map((p) => p.id),
-    ...sampleWithoutReplacement(rng, byTier('specialist'), 2).map((p) => p.id),
-    ...wc,
-  ])
+  const quotas: Array<[ProbeDef['tier'], number]> = [
+    ['beat', 3],
+    ['detective', 4],
+    ['specialist', 2],
+  ]
+  for (const [tier, quota] of quotas) {
+    for (const p of shuffled(rng, STATIC_PROBES.filter((q) => q.tier === tier))) {
+      if (tierCount(tier) >= quota) break
+      add(p.id)
+    }
+  }
+
+  // Always offer a choice of exactly two wildcards.
+  for (const w of shuffled(rng, ['medianTrap', 'alibi', 'confessor'])) {
+    if (tierCount('wildcard') >= 2) break
+    add(w)
+  }
+
+  return shuffled(rng, chosen)
 }
 
 // ── Par solver (greedy most-balanced split) ───────────────────
@@ -113,14 +133,20 @@ function generateLineup(rng: Rng): number[] {
   return lineup
 }
 
-export function generateCase(seed: number, caseNumber: number, isDaily: boolean, dateKey?: string): CaseFile {
+export function generateCase(
+  seed: number,
+  caseNumber: number,
+  isDaily: boolean,
+  dateKey?: string,
+  preferred: readonly string[] = [],
+): CaseFile {
   for (let attempt = 0; attempt < 160; attempt++) {
     const rng = mulberry32((seed + attempt * 7919) >>> 0)
     const lineup = generateLineup(rng)
     const culprit = lineup[intIn(rng, 0, lineup.length - 1)]
     const { par } = greedyPar(lineup)
     if (par < 2 || par > CHIPS_PER_CASE - 1) continue
-    const deal = buildDeal(rng)
+    const deal = buildDeal(rng, preferred)
     // Fairness guarantees:
     //  - BEST: some six-card draft can crack the case to exactly one suspect
     //  - WORST: even the clumsiest draft narrows the room to ≤ WORST_DRAFT_TARGET

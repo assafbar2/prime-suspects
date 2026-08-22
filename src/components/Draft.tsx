@@ -47,6 +47,31 @@ export function Draft({ state, dispatch }: Props) {
         })}
       </div>
 
+      <div className="draft__quick">
+        <button
+          type="button"
+          className="btn btn--ghost btn--small"
+          onClick={() => {
+            sfx.flick()
+            dispatch({ type: 'RANDOMIZE_PICKS' })
+          }}
+        >
+          🎲 Surprise me
+        </button>
+        {(state.stats.lastHand?.length ?? 0) === HAND_SIZE && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--small"
+            onClick={() => {
+              sfx.flick()
+              dispatch({ type: 'REUSE_LAST_HAND' })
+            }}
+          >
+            ♻️ Last game’s kit
+          </button>
+        )}
+      </div>
+
       <div className="draft__table">
         {dealt.map((id) => (
           <ProbeCard

@@ -11,7 +11,7 @@ import {
 } from '../engine/caseGen'
 import { getProbe } from '../engine/probes'
 import { resolveAlibi, resolveConfessor, resolveMedianTrap } from '../engine/resolve'
-import { mulberry32 } from '../engine/rng'
+import { mulberry32, sampleWithoutReplacement } from '../engine/rng'
 
 export type Phase = 'lobby' | 'draft' | 'board' | 'verdict'
 export type Mode = 'endless' | 'daily'
@@ -22,6 +22,8 @@ export interface Stats {
   casesClosed: number
   totalStars: number
   dailyDoneFor?: string
+  /** The six probes from the most recent completed draft — reusable as a kit */
+  lastHand?: string[]
 }
 
 export interface Resolution {
@@ -71,6 +73,9 @@ function loadStats(): Stats {
         casesClosed: parsed.casesClosed ?? 0,
         totalStars: parsed.totalStars ?? 0,
         dailyDoneFor: parsed.dailyDoneFor,
+        lastHand: Array.isArray(parsed.lastHand)
+          ? parsed.lastHand.filter((id): id is string => typeof id === 'string')
+          : undefined,
       }
     }
   } catch {
@@ -89,19 +94,21 @@ function persistStats(stats: Stats) {
 
 let endlessCounter = 0
 
-function makeCase(mode: Mode, caseNumber: number): CaseFile {
+function makeCase(mode: Mode, caseNumber: number, preferred: readonly string[] = []): CaseFile {
   if (mode === 'daily') {
     const key = todayDateKey()
-    return generateCase(dailySeed(key), caseNumber, true, key)
+    return generateCase(dailySeed(key), caseNumber, true, key, preferred)
   }
   endlessCounter += 1
   const seed = (Date.now() ^ (endlessCounter * 2654435761)) >>> 0
-  return generateCase(seed, caseNumber, false)
+  return generateCase(seed, caseNumber, false, undefined, preferred)
 }
 
 export type Action =
   | { type: 'START_CASE'; mode: Mode }
   | { type: 'TOGGLE_PICK'; id: string }
+  | { type: 'RANDOMIZE_PICKS' }
+  | { type: 'REUSE_LAST_HAND' }
   | { type: 'CONFIRM_HAND' }
   | { type: 'USE_PROBE'; id: string }
   | { type: 'PICK_ALIBI'; n: number }
@@ -144,7 +151,7 @@ function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'START_CASE': {
       const caseNumber = state.stats.casesClosed + 1
-      const caseFile = makeCase(action.mode, caseNumber)
+      const caseFile = makeCase(action.mode, caseNumber, state.stats.lastHand ?? [])
       return {
         ...initialState(),
         stats: state.stats,
@@ -158,8 +165,7 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'TOGGLE_PICK': {
       if (!state.caseFile) return state
-      const has = state.picks.includes(action.id)
-      let next = has
+      const next = state.picks.includes(action.id)
         ? state.picks.filter((p) => p !== action.id)
         : state.picks.length < HAND_SIZE
           ? [...state.picks, action.id]
@@ -167,9 +173,26 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, picks: next }
     }
 
+    case 'RANDOMIZE_PICKS': {
+      if (!state.caseFile) return state
+      const rng = mulberry32((Date.now() ^ 0x5f375a86) >>> 0)
+      return { ...state, picks: sampleWithoutReplacement(rng, state.caseFile.deal, HAND_SIZE) }
+    }
+
+    /** The dealer guarantees last game's kit back into the deck — one click to keep it. */
+    case 'REUSE_LAST_HAND': {
+      const last = state.stats.lastHand
+      if (!state.caseFile || !last) return state
+      const cf = state.caseFile
+      const inDeal = last.filter((id) => cf.deal.includes(id))
+      return { ...state, picks: inDeal.slice(0, HAND_SIZE) }
+    }
+
     case 'CONFIRM_HAND': {
       if (!state.caseFile || state.picks.length !== HAND_SIZE) return state
-      return { ...state, phase: 'board', hand: state.picks }
+      const stats: Stats = { ...state.stats, lastHand: [...state.picks] }
+      persistStats(stats)
+      return { ...state, phase: 'board', hand: state.picks, stats }
     }
 
     case 'USE_PROBE': {
@@ -284,7 +307,7 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'NEXT_CASE': {
       const caseNumber = state.stats.casesClosed + 1
-      const caseFile = makeCase('endless', caseNumber)
+      const caseFile = makeCase('endless', caseNumber, state.stats.lastHand ?? [])
       return {
         ...initialState(),
         stats: state.stats,

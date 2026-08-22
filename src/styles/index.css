@@ -1111,7 +1111,14 @@ strong {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
+}
+
+.draft__quick {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 22px;
 }
 
 .slot {
