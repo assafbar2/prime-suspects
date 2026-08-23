@@ -8,9 +8,12 @@ in the room. One of them did it. Every probe you play asks one *true* question �
 suspect on the wrong side of the answer walks out. Cross off ten innocents,
 name the culprit, and don't spend all five chips doing it.
 
-**Play:** run locally with `npm run dev`, or deploy the `dist/` anywhere static.
-No accounts, no analytics, no server — everything runs in your browser and your
-progress stays on your device.
+**▶ Play it now: [assafbar2.github.io/prime-suspects](https://assafbar2.github.io/prime-suspects/)**
+(runs on GitHub Pages, straight from this repo)
+
+Or run it yourself: `npm install && npm run dev`, or deploy the `dist/` anywhere
+static. No accounts, no analytics, no server — everything runs in your browser
+and your progress stays on your device.
 
 ## The loop
 
