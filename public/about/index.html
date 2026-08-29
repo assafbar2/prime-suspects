@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About — Prime Suspects</title>
+<meta name="description" content="What Prime Suspects is, how a case plays out, and the idea behind it.">
+<link rel="canonical" href="https://prime-suspects.vercel.app/about">
+<meta name="theme-color" content="#0b3d2e">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Prime Suspects">
+<meta property="og:title" content="About — Prime Suspects">
+<meta property="og:description" content="What Prime Suspects is, how a case plays out, and the idea behind it.">
+<meta property="og:url" content="https://prime-suspects.vercel.app/about">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--felt:#0b3d2e;--felt-lo:#06251c;--gold:#d4af37;--gold-hi:#f9e7a0;--ivory:#f6efe0;--ink:#2b2117;--ink-soft:#57493a;--card-edge:#e7dcbc}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,var(--felt),var(--felt-lo));color:var(--ivory);
+ font:17px/1.65 'Cormorant Garamond',Georgia,serif;min-height:100vh}
+main{max-width:40rem;margin:0 auto;padding:3rem 1.25rem 4rem}
+.card{background:var(--ivory);color:var(--ink);border:1px solid var(--card-edge);border-radius:6px;padding:2rem 1.75rem;
+ box-shadow:0 12px 40px rgba(0,0,0,.35)}
+h1{font-family:'Cinzel',Georgia,serif;font-size:1.8rem;margin:0 0 1rem;letter-spacing:.02em}
+h2{font-family:'Cinzel',Georgia,serif;font-size:1.05rem;margin:1.75rem 0 .4rem;letter-spacing:.03em}
+p{margin:.7rem 0}
+a{color:#8a6a1c}
+nav{margin-bottom:1.25rem;font-size:.95rem;font-family:'Cinzel',Georgia,serif;letter-spacing:.04em}
+nav a{margin-right:1.1rem;color:var(--gold-hi);text-decoration:none}
+nav a:hover{text-decoration:underline}
+footer{margin-top:2rem;font-size:.85rem;color:var(--gold)}
+footer a{color:var(--gold)}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Play</a><a href="/about">About</a><a href="/contact">Contact</a><a href="/privacy">Privacy</a></nav>
+<div class="card">
+
+<h1>About Prime Suspects</h1>
+<p>Prime Suspects is a noir deduction game disguised as a maths toy. Twelve numbered suspects stand in a lineup. One of them did it. You have five chips and a handful of probe cards, and every probe asks exactly one true question about the culprit — is it a perfect square, does it wear a seven, is it prime, literally. Whatever the answer, every suspect standing on the wrong side of it walks out of the room.</p>
+
+<h2>How a case plays</h2>
+<p>A case runs in three beats. In the <b>draft</b>, eleven probe cards hit the felt and you keep six. Beat cops are blunt instruments. Detectives ask the classic questions. Specialists are surgical. Wildcards bend the rules. In the <b>interrogation</b>, you spend chips to play those probes; the culprit answers honestly, the dossier records the fact, and the lineup thins. In the <b>accusation</b>, you name a survivor and slam the stamp. The right name closes the case. The wrong one clears your streak.</p>
+
+<h2>Par</h2>
+<p>Printed beside the chips is <b>par</b> — the number of chips an optimal interrogation would need for that specific lineup, computed by a balanced-split solver before the case is dealt. It is not a guess or a fixed difficulty setting; it is the actual answer for the actual case in front of you. Beating par means you found a line of questioning as efficient as the solver did.</p>
+
+<h2>The idea</h2>
+<p>Underneath the felt and the gold lettering, this is binary search wearing a hat. The best probe is the one that splits the room closest to in half, and the game rewards that instinct without ever naming it. It came out of a suspicion that the reason people find this kind of reasoning cold is presentation, not content — that the same puzzle framed as an interrogation is simply better company than the same puzzle framed as an exercise.</p>
+<p>It is free, MIT-licensed, runs entirely in your browser, and needs no account. The <a href="https://github.com/assafbar2/prime-suspects">source is on GitHub</a>.</p>
+
+</div>
+<footer>© 2026 Barnir · <a href="/llms.txt">llms.txt</a> · <a href="/sitemap.xml">sitemap</a> · <a href="https://github.com/assafbar2/prime-suspects">source</a></footer>
+</main>
+</body>
+</html>

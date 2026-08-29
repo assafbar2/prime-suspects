@@ -10,6 +10,102 @@
       content="Prime Suspects — a noir deduction game. Twelve numbers. One culprit. Five probes. Cross off every innocent."
     />
     <title>Prime Suspects — a noir number deduction game</title>
+    <link rel="canonical" href="https://prime-suspects.vercel.app/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Prime Suspects" />
+    <meta property="og:title" content="Prime Suspects — a noir number deduction game" />
+    <meta
+      property="og:description"
+      content="Twelve numbers. One culprit. Five probes. A noir deduction game disguised as a maths toy. Free, in the browser, no account."
+    />
+    <meta property="og:url" content="https://prime-suspects.vercel.app/" />
+    <meta property="og:image" content="https://prime-suspects.vercel.app/favicon.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Prime Suspects — a noir number deduction game" />
+    <meta
+      name="twitter:description"
+      content="Twelve numbers. One culprit. Five probes. A noir deduction game disguised as a maths toy."
+    />
+
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="Prime Suspects — site guide for agents" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Prime Suspects",
+        "url": "https://prime-suspects.vercel.app/",
+        "description": "A noir deduction game disguised as a maths toy. Twelve numbered suspects, one culprit, five chips. Each probe asks one true question about the culprit and every suspect contradicted by the answer is eliminated.",
+        "applicationCategory": "GameApplication",
+        "genre": ["Puzzle", "Deduction", "Logic"],
+        "gamePlatform": ["Web browser"],
+        "operatingSystem": "Any",
+        "playMode": "SinglePlayer",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "sameAs": [
+          "https://github.com/assafbar2/prime-suspects",
+          "https://assafbar2.github.io/prime-suspects/"
+        ],
+        "author": {
+          "@type": "Person",
+          "name": "Assaf Barnir",
+          "url": "https://www.barnir.co",
+          "sameAs": ["https://github.com/assafbar2", "https://assafbar2.github.io"],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "support",
+            "email": "barnir@agentmail.to",
+            "url": "https://prime-suspects.vercel.app/contact",
+            "availableLanguage": ["English"]
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* Styles the pre-hydration fallback in #root. Inline so it applies before
+         the app's stylesheet arrives; React discards the markup on first paint. */
+      .boot-fallback {
+        /* Paints its own ground rather than styling body, so nothing here can
+           outlive the fallback and fight the app's stylesheet after mount. */
+        display: block;
+        min-height: 100vh;
+        margin: 0;
+        padding: 3rem 1.25rem;
+        background: linear-gradient(160deg, #0b3d2e, #06251c);
+        color: #f6efe0;
+        font: 17px/1.6 'Cormorant Garamond', Georgia, serif;
+      }
+      .boot-fallback > * {
+        max-width: 34rem;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .boot-fallback h1 {
+        font-family: 'Cinzel', Georgia, serif;
+        font-size: 2rem;
+        letter-spacing: 0.04em;
+        margin: 0 0 0.35rem;
+      }
+      .boot-tagline {
+        font-family: 'Cinzel', Georgia, serif;
+        color: #d4af37;
+        letter-spacing: 0.06em;
+        margin: 0 0 1.25rem;
+      }
+      .boot-links {
+        margin-top: 1.5rem;
+        font-size: 0.95rem;
+      }
+      .boot-fallback a {
+        color: #d4af37;
+      }
+    </style>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,7 +114,47 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      The markup inside #root is a pre-hydration fallback. createRoot().render()
+      clears the container on first paint, so this is what a reader sees only
+      while the bundle loads — and what a crawler with JavaScript off sees at
+      all. Before this existed, both got an empty div.
+    -->
+    <div id="root">
+      <main class="boot-fallback">
+        <h1>Prime Suspects</h1>
+        <p class="boot-tagline">Twelve numbers. One culprit. Five probes.</p>
+        <p>
+          A noir deduction game disguised as a maths toy. A lineup of twelve
+          numbered suspects stands in the room and one of them did it. Every
+          probe you play asks a single true question about the culprit — is it a
+          perfect square, does it wear a seven, is it prime, literally — and
+          every suspect standing on the wrong side of the answer walks out.
+          Cross off ten innocents, name the culprit, and try not to spend all
+          five chips getting there.
+        </p>
+        <p>
+          A case runs in three beats. <strong>Draft</strong> six probe cards from
+          the eleven dealt to the felt. <strong>Interrogate</strong> by spending
+          chips, watching the room thin out as each answer lands in the dossier.
+          <strong>Accuse</strong> a survivor and slam the stamp. Beside the chips
+          sits <em>par</em> — the number of chips an optimal interrogation needs
+          for this exact lineup, computed by a balanced-split solver before the
+          case is dealt. Beating it means you questioned as well as the solver.
+        </p>
+        <p>
+          Free, no account, nothing stored anywhere but your own browser.
+          <noscript>
+            This game needs JavaScript to play, so please enable it and reload.
+          </noscript>
+        </p>
+        <p class="boot-links">
+          <a href="/about">About</a> · <a href="/contact">Contact</a> ·
+          <a href="/privacy">Privacy</a> ·
+          <a href="https://github.com/assafbar2/prime-suspects">Source</a>
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
