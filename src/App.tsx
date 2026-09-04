@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { sfx } from './audio/sfx'
 import { Board } from './components/Board'
 import { Draft } from './components/Draft'
@@ -18,6 +19,7 @@ export default function App() {
 
   return (
     <div className="table">
+      <Analytics />
       <div className="spotlight" aria-hidden />
       <div className="grain" aria-hidden />
       <div className="vignette" aria-hidden />
