@@ -4,6 +4,7 @@ import { getProbe } from '../engine/probes'
 import { sfx } from '../audio/sfx'
 import type { Action, GameState } from '../game/store'
 import { ProbeCard } from './ProbeCard'
+import { ProbeHelp } from './ProbeHelp'
 
 interface Props {
   state: GameState
@@ -23,10 +24,11 @@ export function Draft({ state, dispatch }: Props) {
   return (
     <div className="draft">
       <header className="draft__head">
+        <p className="eyebrow">{state.mode === 'daily' ? `Official daily · ${state.caseFile?.dateKey}` : state.mode === 'daily-practice' ? `Practice · ${state.caseFile?.dateKey}` : 'Practice · endless'}</p>
         <h2 className="draft__title">Assemble your kit</h2>
         <p className="draft__sub">
-          Pick <strong>{HAND_SIZE}</strong> probes from the eleven on the table. Choose your
-          detectives wisely — you get five chips to spend them.
+          Choose <strong>{HAND_SIZE}</strong> questions from {dealt.length}. You can ask five.
+          Start with a suggested kit, or choose your own.
         </p>
       </header>
 
@@ -48,6 +50,7 @@ export function Draft({ state, dispatch }: Props) {
       </div>
 
       <div className="draft__quick">
+        <button type="button" className="btn btn--gold" onClick={() => dispatch({ type: 'STARTER_KIT' })}>Use a starter kit</button>
         <button
           type="button"
           className="btn btn--ghost btn--small"
@@ -58,7 +61,7 @@ export function Draft({ state, dispatch }: Props) {
         >
           🎲 Surprise me
         </button>
-        {(state.stats.lastHand?.length ?? 0) === HAND_SIZE && (
+        {state.mode === 'endless' && (state.stats.lastHand?.length ?? 0) === HAND_SIZE && (
           <button
             type="button"
             className="btn btn--ghost btn--small"
@@ -72,6 +75,17 @@ export function Draft({ state, dispatch }: Props) {
         )}
       </div>
 
+      <p className="draft__note">The starter kit balances questions against the visible lineup, not the hidden answer. No perfect solve is promised.</p>
+      <details className="probe-help"><summary>Inspect the twelve-number lineup</summary><p className="draft__lineup">{state.caseFile?.lineup.join(' · ')}</p></details>
+      <ProbeHelp ids={dealt} />
+
+      <div className="draft__dock"><span aria-live="polite">{state.picks.length} / {HAND_SIZE} selected</span><button
+        type="button"
+        className="btn btn--gold draft__go"
+        disabled={state.picks.length !== HAND_SIZE}
+        onClick={() => { sfx.stamp(); dispatch({ type: 'CONFIRM_HAND' }) }}
+      >Start the case</button></div>
+
       <div className="draft__table">
         {dealt.map((id) => (
           <ProbeCard
@@ -79,22 +93,12 @@ export function Draft({ state, dispatch }: Props) {
             id={id}
             used={false}
             selectedInDraft={picked.has(id)}
+            unavailable={!picked.has(id) && picked.size === HAND_SIZE}
             onClick={() => dispatch({ type: 'TOGGLE_PICK', id })}
           />
         ))}
       </div>
 
-      <button
-        type="button"
-        className="btn btn--gold draft__go"
-        disabled={state.picks.length !== HAND_SIZE}
-        onClick={() => {
-          sfx.stamp()
-          dispatch({ type: 'CONFIRM_HAND' })
-        }}
-      >
-        Open the interrogation room
-      </button>
     </div>
   )
 }

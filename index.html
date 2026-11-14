@@ -2,12 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b3d2e" />
     <meta
       name="description"
-      content="Prime Suspects — a noir deduction game. Twelve numbers. One culprit. Five probes. Cross off every innocent."
+      content="A daily detective puzzle where the suspects are numbers. Twelve suspects. One culprit. Five probes. Free, in your browser."
     />
     <title>Prime Suspects — a noir number deduction game</title>
     <link rel="canonical" href="https://prime-suspects.vercel.app/" />
@@ -17,18 +17,22 @@
     <meta property="og:title" content="Prime Suspects — a noir number deduction game" />
     <meta
       property="og:description"
-      content="Twelve numbers. One culprit. Five probes. A noir deduction game disguised as a maths toy. Free, in the browser, no account."
+      content="Twelve numbers. One culprit. Five probes. A daily detective puzzle. Free, in the browser, no account."
     />
     <meta property="og:url" content="https://prime-suspects.vercel.app/" />
-    <meta property="og:image" content="https://prime-suspects.vercel.app/favicon.svg" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://prime-suspects.vercel.app/social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Prime Suspects — twelve numbers, one culprit, five probes. A daily detective puzzle." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://prime-suspects.vercel.app/social-preview.png" />
     <meta name="twitter:title" content="Prime Suspects — a noir number deduction game" />
     <meta
       name="twitter:description"
-      content="Twelve numbers. One culprit. Five probes. A noir deduction game disguised as a maths toy."
+      content="Twelve numbers. One culprit. Five probes. A daily detective puzzle where the suspects are numbers."
     />
 
-    <link rel="alternate" type="text/plain" href="/llms.txt" title="Prime Suspects — site guide for agents" />
+    <link rel="alternate" type="text/plain" href="%BASE_URL%llms.txt" title="Prime Suspects — site guide for agents" />
 
     <script type="application/ld+json">
       {
@@ -36,7 +40,7 @@
         "@type": "VideoGame",
         "name": "Prime Suspects",
         "url": "https://prime-suspects.vercel.app/",
-        "description": "A noir deduction game disguised as a maths toy. Twelve numbered suspects, one culprit, five chips. Each probe asks one true question about the culprit and every suspect contradicted by the answer is eliminated.",
+        "description": "A daily detective puzzle where the suspects are numbers. Twelve suspects, one culprit, five probes. Follow the evidence and make one accusation.",
         "applicationCategory": "GameApplication",
         "genre": ["Puzzle", "Deduction", "Logic"],
         "gamePlatform": ["Web browser"],
@@ -44,7 +48,6 @@
         "playMode": "SinglePlayer",
         "inLanguage": "en",
         "isAccessibleForFree": true,
-        "license": "https://opensource.org/licenses/MIT",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "sameAs": [
           "https://github.com/assafbar2/prime-suspects",
@@ -106,12 +109,6 @@
       }
     </style>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@500;600&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <!--
@@ -137,20 +134,18 @@
           A case runs in three beats. <strong>Draft</strong> six probe cards from
           the eleven dealt to the felt. <strong>Interrogate</strong> by spending
           chips, watching the room thin out as each answer lands in the dossier.
-          <strong>Accuse</strong> a survivor and slam the stamp. Beside the chips
-          sits <em>par</em> — the number of chips an optimal interrogation needs
-          for this exact lineup, computed by a balanced-split solver before the
-          case is dealt. Beating it means you questioned as well as the solver.
+          <strong>Accuse</strong> a survivor and slam the stamp. Daily results compare
+          solved or missed, plus probes used out of five. A new daily opens at 00:00 UTC.
         </p>
         <p>
-          Free, no account, nothing stored anywhere but your own browser.
+          Free, no account. Progress is saved in this browser when storage is available.
           <noscript>
             This game needs JavaScript to play, so please enable it and reload.
           </noscript>
         </p>
         <p class="boot-links">
-          <a href="/about">About</a> · <a href="/contact">Contact</a> ·
-          <a href="/privacy">Privacy</a> ·
+          <a href="./about/">About</a> · <a href="./contact/">Contact</a> ·
+          <a href="./privacy/">Privacy</a> ·
           <a href="https://github.com/assafbar2/prime-suspects">Source</a>
         </p>
       </main>

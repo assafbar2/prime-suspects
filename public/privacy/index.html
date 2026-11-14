@@ -1,66 +1,23 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy — Prime Suspects</title>
-<meta name="description" content="What Prime Suspects stores locally and what it does not collect.">
-<link rel="canonical" href="https://prime-suspects.vercel.app/privacy">
-<meta name="theme-color" content="#0b3d2e">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Prime Suspects">
-<meta property="og:title" content="Privacy — Prime Suspects">
-<meta property="og:description" content="What Prime Suspects stores locally and what it does not collect.">
-<meta property="og:url" content="https://prime-suspects.vercel.app/privacy">
-<meta name="twitter:card" content="summary">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Prime Suspects</title><meta name="description" content="Browser-local saves, optional analytics, and sharing in Prime Suspects.">
+<link rel="canonical" href="https://prime-suspects.vercel.app/privacy/"><link rel="icon" href="../favicon.svg"><meta name="theme-color" content="#0b3d2e">
 <style>
-:root{--felt:#0b3d2e;--felt-lo:#06251c;--gold:#d4af37;--gold-hi:#f9e7a0;--ivory:#f6efe0;--ink:#2b2117;--ink-soft:#57493a;--card-edge:#e7dcbc}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(160deg,var(--felt),var(--felt-lo));color:var(--ivory);
- font:17px/1.65 'Cormorant Garamond',Georgia,serif;min-height:100vh}
-main{max-width:40rem;margin:0 auto;padding:3rem 1.25rem 4rem}
-.card{background:var(--ivory);color:var(--ink);border:1px solid var(--card-edge);border-radius:6px;padding:2rem 1.75rem;
- box-shadow:0 12px 40px rgba(0,0,0,.35)}
-h1{font-family:'Cinzel',Georgia,serif;font-size:1.8rem;margin:0 0 1rem;letter-spacing:.02em}
-h2{font-family:'Cinzel',Georgia,serif;font-size:1.05rem;margin:1.75rem 0 .4rem;letter-spacing:.03em}
-p{margin:.7rem 0}
-a{color:#8a6a1c}
-nav{margin-bottom:1.25rem;font-size:.95rem;font-family:'Cinzel',Georgia,serif;letter-spacing:.04em}
-nav a{margin-right:1.1rem;color:var(--gold-hi);text-decoration:none}
-nav a:hover{text-decoration:underline}
-footer{margin-top:2rem;font-size:.85rem;color:var(--gold)}
-footer a{color:var(--gold)}
-</style>
-</head>
-<body>
-<main>
-<nav><a href="/">← Play</a><a href="/about">About</a><a href="/contact">Contact</a><a href="/privacy">Privacy</a></nav>
-<div class="card">
-
-<h1>Privacy</h1>
-<p>Prime Suspects runs entirely in your browser. There is no account, no login, no advertising, and no analytics script.</p>
-
-<h2>What is stored</h2>
-<p>Your streak, your last-used probe kit, and your preferences are kept in your browser using <code>localStorage</code>. That data stays on your device. It is never transmitted, there is no server holding a copy, and nobody else can read it. Clearing site data for this domain erases it permanently — which is also the only way to reset a streak.</p>
-
-<h2>What is not collected</h2>
-<p>No email address, no name, no device fingerprint, no advertising identifier, and no record of the cases you played. The game asks for none of it because it has no use for any of it.</p>
-
-<h2>Fonts and hosting</h2>
-<p>The page loads its display fonts from Google Fonts, which means Google receives the request for those font files, as it does for any site using them. The site itself is hosted on Vercel, which keeps ordinary server request logs as part of serving web traffic. Both are outside the game and governed by their own policies. Nothing else leaves your browser.</p>
-
-<h2>Children</h2>
-<p>The game is suitable for any age and collects nothing from anyone, so there is nothing to age-gate and nothing to delete on request.</p>
-
-<h2>Questions</h2>
-<p>Email <a href="mailto:barnir@agentmail.to">barnir@agentmail.to</a>.</p>
-
-</div>
-<footer>© 2026 Barnir · <a href="/llms.txt">llms.txt</a> · <a href="/sitemap.xml">sitemap</a> · <a href="https://github.com/assafbar2/prime-suspects">source</a></footer>
-</main>
-</body>
-</html>
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(150deg,#10553f,#06251c);color:#f6efe0;font:16px/1.7 system-ui,sans-serif;min-height:100vh}main{max-width:760px;margin:auto;padding:40px 20px}article{background:#f6efe0;color:#2b2117;border:1px solid #d4af37;border-radius:12px;padding:clamp(20px,5vw,40px)}h1,h2{font-family:Georgia,serif}h1{font-size:36px}h2{font-size:23px;margin-top:30px}nav{margin-bottom:24px;display:flex;gap:20px;flex-wrap:wrap}nav a{color:#f9e7a0}article a{color:#694b06}a:focus-visible{outline:3px solid #d4af37;outline-offset:4px}code{overflow-wrap:anywhere}footer{margin-top:24px;font-size:13px}
+</style></head><body><main>
+<nav><a href="../">← Play</a><a href="../about/">About</a><a href="../contact/">Contact</a></nav>
+<article><h1>Privacy</h1><p>Release policy · November 14, 2026</p>
+<p>Prime Suspects is a browser puzzle with no account or advertising. The game does not require a backend to play. This release defaults custom analytics to <strong>off</strong>; the downloadable HTML5 ZIP has collection disabled.</p>
+<h2>Saved on this browser</h2>
+<p>Local storage holds your versioned daily runs and results, current practice run, selected kit, tutorial status, sound preference, and local measurement deduplication markers. These saves include the generated puzzle and are not cheat-proof. Old version-one statistics are retained for recovery and shown as legacy / overall totals, not converted into invented daily results.</p>
+<p>Saves belong to the current site origin. Vercel and GitHub Pages saves do not follow you to the other site or another device. Clearing site data removes progress. If storage is blocked, full or unreadable, a notice explains session-only play. A durable attempt limit is not promised in that condition.</p>
+<h2>Optional measurement</h2>
+<p>The owner can explicitly enable Vercel custom events in a deployment with an eligible plan. When enabled, the single Vercel Web Analytics integration also loads its script and may collect base pageviews. Events describe meaningful game starts, completions, tutorial completion, share requests and successes, validated shared-link starts, D1/D7 returns, and optional support-link clicks.</p>
+<p>The game adapter allows only mode, solved/missed outcome, probe count, generator version, case date, completion/cohort dates, an allowlisted share-source category, and whether a share happened within 24 hours of its result. It does not send the culprit, answers, guesses, run IDs, emails, arbitrary query parameters, or player IDs. Analytics page URLs are normalized to the canonical homepage; provider transport and ordinary hosting logs still exist. Development debug events stay in the local developer console and are not a dashboard.</p>
+<p>Older hosted builds can have different analytics behavior. The existing deployed bundle was found to include Vercel Analytics during this release audit; this policy describes the replacement release, not a claim that a deployment has already changed. Blocking analytics or being offline must not stop play.</p>
+<h2>Invitations and external links</h2>
+<p>Sharing includes the outcome, probes used, and a playable link. Daily links include the version and date; they contain no solution. The allowlisted player-share attribution is kept locally through onboarding until the first meaningful real-game action. A completed share API call is not evidence of a published post. External supporter links, when configured by the owner, use their provider’s privacy policy.</p>
+<h2>Hosting and fonts</h2>
+<p>The game uses system fonts without requesting Google Fonts. Hosting providers such as Vercel or GitHub may retain request logs under their own policies. Optional analytics providers receive network requests when enabled. There is no promise that nothing leaves your browser when you visit a hosted website.</p>
+<h2>Questions</h2><p>Contact <a href="mailto:barnir@agentmail.to">barnir@agentmail.to</a>. No login or email is needed to play.</p>
+</article><footer>Prime Suspects · Browser-local progress · No account required</footer></main></body></html>

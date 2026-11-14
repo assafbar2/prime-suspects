@@ -13,12 +13,13 @@ interface Props {
   used: boolean
   blocked?: boolean
   selectedInDraft?: boolean
+  unavailable?: boolean
   onClick?: () => void
 }
 
-function ProbeCardInner({ id, used, blocked, selectedInDraft, onClick }: Props) {
+function ProbeCardInner({ id, used, blocked, selectedInDraft, unavailable, onClick }: Props) {
   const def = getProbe(id)
-  const disabled = used || blocked
+  const disabled = used || blocked || unavailable
   return (
     <button
       type="button"
@@ -33,14 +34,15 @@ function ProbeCardInner({ id, used, blocked, selectedInDraft, onClick }: Props) 
       disabled={disabled}
       title={blocked ? BLOCKED_NOTE : def.note}
       aria-label={`${def.label} (${def.tier})${blocked ? ' — no new information right now' : ''}`}
-      aria-disabled={blocked}
+      aria-disabled={disabled}
+      aria-pressed={selectedInDraft}
     >
       <span className="probe__gem" aria-hidden />
       <span className="probe__face" aria-hidden>
         {def.face}
       </span>
       <span className="probe__label">{def.label}</span>
-      <span className="probe__tier">{blocked ? 'DEAD' : def.tier}</span>
+      <span className="probe__tier">{used ? 'USED' : blocked ? 'NO NEW INFO' : selectedInDraft ? 'SELECTED' : unavailable ? 'KIT FULL' : def.tier}</span>
       <span className="probe__sheen" aria-hidden />
     </button>
   )

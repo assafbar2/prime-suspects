@@ -1,343 +1,274 @@
-import { useCallback, useEffect, useReducer } from 'react'
-import {
-  CHIPS_PER_CASE,
-  HAND_SIZE,
-  buildDeal,
-  dailySeed,
-  generateCase,
-  resolveStatic,
-  todayDateKey,
-  type CaseFile,
-} from '../engine/caseGen'
-import { getProbe } from '../engine/probes'
-import { resolveAlibi, resolveConfessor, resolveMedianTrap } from '../engine/resolve'
-import { mulberry32, sampleWithoutReplacement } from '../engine/rng'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { buildDeal, generateCase, generateDaily, type CaseFile } from '../engine/caseGen'
+import { CHIPS_PER_CASE } from '../engine/constants'
+import { dailyIdentity, dailyStats, daysBetween, utcDate } from './dates'
+import { createRun, reduceRun, type Mode, type Run, type RunAction } from './run'
+import { browserStorage, PREFIX, Repository, type Meta } from './storage'
+import { parseRoute } from './sharing'
+import { browserTelemetry, createTelemetry, measuredCohort, propertiesFor, within24Hours, type EventName, type Telemetry } from './telemetry'
 
-export type Phase = 'lobby' | 'draft' | 'board' | 'verdict'
-export type Mode = 'endless' | 'daily'
-
-export interface Stats {
-  streak: number
-  bestStreak: number
-  casesClosed: number
-  totalStars: number
-  dailyDoneFor?: string
-  /** The six probes from the most recent completed draft — reusable as a kit */
-  lastHand?: string[]
-}
-
-export interface Resolution {
-  probeId: string
-  eliminated: number[]
-  headline: string
-}
-
-export interface CaseResult {
-  win: boolean
-  stars: number
-  probesUsed: number
-  par: number
-  guess: number | null
-}
-
-export interface GameState {
+export type { Mode, RunAction }
+export type Phase = 'lobby' | 'tutorial' | 'draft' | 'board' | 'verdict'
+export interface Stats { streak: number; bestStreak: number; casesClosed: number; solved: number; lastHand: string[] }
+export interface GameState extends Omit<Run, 'schema' | 'phase' | 'caseFile'> {
   phase: Phase
-  mode: Mode
   caseFile: CaseFile | null
-  picks: string[]
-  hand: string[]
-  usedIds: string[]
-  /** Established facts about the culprit, in play order */
-  facts: string[]
-  chipsLeft: number
-  crossedOff: number[]
-  resolution: Resolution | null
-  confession: string | null
-  alibiMode: boolean
-  alibiPicks: number[]
-  accusation: number | null
-  result: CaseResult | null
+  run: Run | null
   stats: Stats
+  meta: Meta
+  officials: Record<string, Run>
+  practice: Run | null
+  notice: string
+  routeError: string
+  linkedDate: string | null
+  pending: boolean
+  today: string
 }
 
-const STORAGE_KEY = 'prime-suspects:v1'
-
-function loadStats(): Stats {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<Stats>
-      return {
-        streak: parsed.streak ?? 0,
-        bestStreak: parsed.bestStreak ?? 0,
-        casesClosed: parsed.casesClosed ?? 0,
-        totalStars: parsed.totalStars ?? 0,
-        dailyDoneFor: parsed.dailyDoneFor,
-        lastHand: Array.isArray(parsed.lastHand)
-          ? parsed.lastHand.filter((id): id is string => typeof id === 'string')
-          : undefined,
-      }
-    }
-  } catch {
-    /* corrupted storage — start fresh */
-  }
-  return { streak: 0, bestStreak: 0, casesClosed: 0, totalStars: 0 }
-}
-
-function persistStats(stats: Stats) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
-  } catch {
-    /* private mode etc. — stats just won't survive */
-  }
-}
-
-let endlessCounter = 0
-
-function makeCase(mode: Mode, caseNumber: number, preferred: readonly string[] = []): CaseFile {
-  if (mode === 'daily') {
-    const key = todayDateKey()
-    return generateCase(dailySeed(key), caseNumber, true, key, preferred)
-  }
-  endlessCounter += 1
-  const seed = (Date.now() ^ (endlessCounter * 2654435761)) >>> 0
-  return generateCase(seed, caseNumber, false, undefined, preferred)
-}
-
-export type Action =
-  | { type: 'START_CASE'; mode: Mode }
-  | { type: 'TOGGLE_PICK'; id: string }
-  | { type: 'RANDOMIZE_PICKS' }
+export type Action = RunAction
+  | { type: 'START_CASE'; mode: Mode; date?: string }
+  | { type: 'RESUME_OFFICIAL'; identity: string }
+  | { type: 'RESUME_PRACTICE' }
   | { type: 'REUSE_LAST_HAND' }
-  | { type: 'CONFIRM_HAND' }
-  | { type: 'USE_PROBE'; id: string }
-  | { type: 'PICK_ALIBI'; n: number }
-  | { type: 'CANCEL_ALIBI' }
-  | { type: 'ACCUSE'; n: number }
-  | { type: 'CANCEL_ACCUSE' }
-  | { type: 'CONFIRM_ACCUSE' }
-  | { type: 'DISMISS_RESOLUTION' }
   | { type: 'NEXT_CASE' }
   | { type: 'BACK_LOBBY' }
+  | { type: 'START_TUTORIAL' }
+  | { type: 'TUTORIAL_COMPLETE' }
+  | { type: 'END_TUTORIAL'; complete: boolean }
+  | { type: 'ACK_MIGRATION' }
+  | { type: 'SHARE_INTENT'; runId: string }
+  | { type: 'SHARE_SUCCESS'; runId: string }
+  | { type: 'SUPPORT_CLICK'; runId: string }
 
-export function initialState(): GameState {
-  return {
-    phase: 'lobby',
-    mode: 'endless',
-    caseFile: null,
-    picks: [],
-    hand: [],
-    usedIds: [],
-    facts: [],
-    chipsLeft: CHIPS_PER_CASE,
-    crossedOff: [],
-    resolution: null,
-    confession: null,
-    alibiMode: false,
-    alibiPicks: [],
-    accusation: null,
-    result: null,
-    stats: loadStats(),
+export type Lock = (name: string, work: () => void) => Promise<unknown>
+export interface ControllerOptions {
+  storage: Storage | null
+  now?: () => number
+  id?: () => string
+  lock?: Lock
+  telemetry?: Telemetry
+  search?: string
+}
+
+export class GameController {
+  readonly repository: Repository
+  private now: () => number
+  private id: () => string
+  private lock?: Lock
+  private telemetry: Telemetry
+  private active: Run | null = null
+  private screen: 'lobby' | 'tutorial' | 'run' = 'lobby'
+  private routeError = ''
+  private linkedDate: string | null = null
+  private pending = false
+  private listeners = new Set<() => void>()
+  private snapshot!: GameState
+
+  constructor(options: ControllerOptions) {
+    this.repository = new Repository(options.storage)
+    this.now = options.now ?? Date.now
+    this.id = options.id ?? (() => crypto.randomUUID())
+    this.lock = options.lock
+    this.telemetry = options.telemetry ?? createTelemetry()
+    if (this.telemetry.enabled && !this.repository.meta.collectionStartedOn) this.repository.updateMeta({ collectionStartedOn: utcDate(this.now()) })
+    let route = parseRoute(options.search ?? '', utcDate(this.now()))
+    if (route.source) this.repository.updateMeta({ sourceCapturedAt: this.now() })
+    if (route.kind === 'home' && this.repository.meta.pendingDaily) route = parseRoute(`?daily=${this.repository.meta.pendingDaily}&v=2`, utcDate(this.now()))
+    if (route.kind === 'invalid') this.routeError = route.reason
+    else if (route.kind === 'daily') {
+      this.linkedDate = route.date
+      this.repository.updateMeta({ pendingDaily: route.date })
+      if (this.repository.meta.onboardingSeen || this.repository.forDate(route.date)) this.openDate(route.date)
+    } else if (this.repository.meta.active) {
+      this.active = this.repository.officials[this.repository.meta.active] ?? (this.repository.practice?.id === this.repository.meta.active ? this.repository.practice : null)
+      if (this.active) this.screen = 'run'
+    }
+    this.publish()
   }
-}
 
-function starsFor(probesUsed: number, par: number): number {
-  if (probesUsed <= Math.max(1, par - 1)) return 3
-  if (probesUsed <= par) return 2
-  return 1
-}
+  subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
+  getSnapshot = () => this.snapshot
 
-function reducer(state: GameState, action: Action): GameState {
-  switch (action.type) {
-    case 'START_CASE': {
-      const caseNumber = state.stats.casesClosed + 1
-      const caseFile = makeCase(action.mode, caseNumber, state.stats.lastHand ?? [])
-      return {
-        ...initialState(),
-        stats: state.stats,
-        phase: 'draft',
-        mode: action.mode,
-        caseFile,
-        chipsLeft: CHIPS_PER_CASE,
-        picks: [],
-      }
+  private publish() {
+    const results = Object.fromEntries(Object.values(this.repository.officials).filter((run) => run.result).map((run) => [run.caseFile.dateKey!, run.result!]))
+    const totals = dailyStats(results, utcDate(this.now()))
+    const empty = { id: '', mode: 'endless' as const, identity: null, startedAt: 0, picks: [], hand: [], history: [], usedIds: [], chipsLeft: CHIPS_PER_CASE, crossedOff: [], facts: [], resolution: null, confession: null, alibiMode: false, alibiPicks: [], accusation: null, result: null, markers: {} }
+    this.snapshot = {
+      ...empty, ...this.active, phase: this.screen === 'run' ? this.active!.phase : this.screen,
+      caseFile: this.active?.caseFile ?? null, run: this.active,
+      stats: { streak: totals.current, bestStreak: totals.best, casesClosed: totals.completed, solved: totals.solved, lastHand: this.repository.meta.lastHand },
+      meta: this.repository.meta, officials: { ...this.repository.officials }, practice: this.repository.practice,
+      notice: this.repository.notice, routeError: this.routeError, linkedDate: this.linkedDate,
+      pending: this.pending, today: utcDate(this.now()),
     }
+    this.listeners.forEach((listener) => listener())
+  }
 
-    case 'TOGGLE_PICK': {
-      if (!state.caseFile) return state
-      const next = state.picks.includes(action.id)
-        ? state.picks.filter((p) => p !== action.id)
-        : state.picks.length < HAND_SIZE
-          ? [...state.picks, action.id]
-          : state.picks
-      return { ...state, picks: next }
+  reconcile = () => {
+    this.repository.reload()
+    if (this.active?.mode === 'daily') {
+      const durable = this.repository.officials[this.active.identity!]
+      if (durable?.result) this.active = durable
     }
+    this.publish()
+  }
 
-    case 'RANDOMIZE_PICKS': {
-      if (!state.caseFile) return state
-      const rng = mulberry32((Date.now() ^ 0x5f375a86) >>> 0)
-      return { ...state, picks: sampleWithoutReplacement(rng, state.caseFile.deal, HAND_SIZE) }
+  tick = () => { if (utcDate(this.now()) !== this.snapshot.today) this.publish() }
+
+  private select(run: Run) {
+    this.active = this.repository.save(run)
+    this.screen = 'run'
+    this.routeError = ''
+    this.linkedDate = null
+    this.repository.updateMeta({ active: this.active.id, pendingDaily: null, onboardingSeen: true })
+  }
+
+  private openDate(date: string, practice = false) {
+    const existing = this.repository.forDate(date)
+    if (!practice && existing) { this.select(existing); return }
+    const official = !practice && date === utcDate(this.now())
+    const file = generateDaily(date)
+    this.select(createRun(file, official ? 'daily' : 'daily-practice', this.now(), official ? dailyIdentity(date) : this.id()))
+  }
+
+  private record(name: EventName, run: Run, extra: Record<string, string | number | boolean> = {}) {
+    this.telemetry.emit(name, { ...propertiesFor(run, this.repository.meta), ...extra })
+  }
+
+  private activate(run: Run): Run {
+    if (run.markers.start) return run
+    const shared = this.repository.meta.sourceCapturedAt > this.repository.meta.sourceConsumedAt
+    let next: Run = { ...run, markers: { ...run.markers, start: true, ...(shared ? { shared: true } : {}) } }
+    next = this.repository.save(next)
+    if (shared) this.repository.updateMeta({ sourceConsumedAt: Math.max(this.now(), this.repository.meta.sourceCapturedAt) })
+    this.record('game_start', next)
+    if (shared) this.record('shared_link_start', next, { source: 'player_share' })
+    const meta = this.repository.meta
+    if (this.telemetry.enabled && measuredCohort(meta)) {
+      const elapsed = daysBetween(meta.firstCompletion!.date, utcDate(this.now()))
+      if (elapsed === 1 && !meta.returnD1) { this.repository.updateMeta({ returnD1: true }); this.record('return_d1', next) }
+      if (elapsed === 7 && !meta.returnD7) { this.repository.updateMeta({ returnD7: true }); this.record('return_d7', next) }
     }
+    return next
+  }
 
-    /** The dealer guarantees last game's kit back into the deck — one click to keep it. */
-    case 'REUSE_LAST_HAND': {
-      const last = state.stats.lastHand
-      if (!state.caseFile || !last) return state
-      const cf = state.caseFile
-      const inDeal = last.filter((id) => cf.deal.includes(id))
-      return { ...state, picks: inDeal.slice(0, HAND_SIZE) }
-    }
-
-    case 'CONFIRM_HAND': {
-      if (!state.caseFile || state.picks.length !== HAND_SIZE) return state
-      const stats: Stats = { ...state.stats, lastHand: [...state.picks] }
-      persistStats(stats)
-      return { ...state, phase: 'board', hand: state.picks, stats }
-    }
-
-    case 'USE_PROBE': {
-      if (!state.caseFile || !state.hand.includes(action.id)) return state
-      if (state.usedIds.includes(action.id)) return state
-      if (state.chipsLeft <= 0) return state
-      const def = getProbe(action.id)
-      const culprit = state.caseFile.culprit
-      const alive = state.caseFile.lineup.filter((n) => !state.crossedOff.includes(n))
-
-      let eliminated: number[] = []
-      let headline = ''
-      let fact = ''
-      let confession: string | null = null
-      let alibiMode = state.alibiMode
-
-      if (def.kind === 'static') {
-        const r = resolveStatic(action.id, alive, culprit)
-        eliminated = r.eliminated
-        headline =
-          r.answer
-            ? `Culprit answers YES to “${def.label}” — everyone who would answer NO walks:`
-            : `Culprit answers NO to “${def.label}” — everyone who would answer YES walks:`
-        fact = `${def.label} → ${r.answer ? 'YES' : 'NO'}`
-      } else if (def.kind === 'medianTrap') {
-        const r = resolveMedianTrap(alive, culprit)
-        eliminated = r.eliminated
-        headline = `Culprit sits ${
-          r.answer ? 'above' : 'below'
-        } the survivors' median (${r.median}). The ${r.answer ? 'lower' : 'upper'} half walks:`
-        fact = `Median ${r.median} → culprit ${r.answer ? 'above' : 'below'}`
-      } else if (def.kind === 'alibi') {
-        if (!state.alibiMode && state.alibiPicks.length === 0) {
-          return { ...state, alibiMode: true, alibiPicks: [] }
+  private finalize = async () => {
+    if (!this.active || this.active.phase !== 'board' || this.active.accusation === null || this.pending) return
+    const candidate = this.active
+    this.pending = true
+    this.publish()
+    const work = () => {
+      this.repository.reload()
+      const existing = candidate.mode === 'daily' ? this.repository.readOfficial(candidate.identity!) : null
+      if (existing?.result) { this.active = existing; return }
+      let completed = reduceRun(candidate, { type: 'CONFIRM_ACCUSE' }, this.now())
+      if (!completed.result) return
+      completed = this.activate(completed)
+      if (!completed.markers.complete) {
+        completed = this.repository.save({ ...completed, markers: { ...completed.markers, complete: true } })
+        if (completed.mode !== 'daily') this.repository.updateMeta({ practiceCompleted: this.repository.meta.practiceCompleted + 1, practiceSolved: this.repository.meta.practiceSolved + Number(completed.result!.win) })
+        if (!this.repository.meta.firstCompletion) {
+          this.repository.updateMeta({ firstCompletion: { date: utcDate(completed.result!.completedAt), measured: this.telemetry.enabled } })
+          this.record('first_completion', completed)
         }
-        const outcome = resolveAlibi(state.alibiPicks[0], culprit, alive)
-        eliminated = outcome.eliminated
-        headline =
-          outcome.type === 'isCulprit'
-            ? `Alibi refused — ${state.alibiPicks[0]} IS the culprit. Everyone else walks!`
-            : `${state.alibiPicks[0]} has an alibi and walks free.`
-        fact = outcome.type === 'isCulprit' ? `${state.alibiPicks[0]} = culprit` : `${state.alibiPicks[0]} innocent`
-        alibiMode = false
-      } else if (def.kind === 'confessor') {
-        const rng = mulberry32((state.caseFile.seed ^ state.chipsLeft) >>> 0)
-        confession = resolveConfessor(state.caseFile.culprit, rng() * 1000)
-        headline = 'The suspect talks…'
-        fact = `🕯 ${confession}`
+        this.record('game_complete', completed)
       }
+      this.active = completed
+    }
+    try {
+      if (this.lock && candidate.mode === 'daily' && this.repository.durable) {
+        try { await this.lock(`prime-suspects:finalize:${candidate.identity}`, work) }
+        catch { work() }
+      } else work()
+    } finally { this.pending = false; this.publish() }
+  }
 
-      return {
-        ...state,
-        usedIds: [...state.usedIds, action.id],
-        facts: fact ? [...state.facts, fact] : state.facts,
-        chipsLeft: state.chipsLeft - 1,
-        crossedOff: [...new Set([...state.crossedOff, ...eliminated])],
-        resolution: { probeId: action.id, eliminated, headline },
-        confession,
-        alibiMode,
-        alibiPicks: alibiMode ? state.alibiPicks : [],
+  dispatch = (action: Action): void => {
+    if (this.pending) return
+    if (action.type === 'CONFIRM_ACCUSE') { void this.finalize(); return }
+    if (action.type === 'START_CASE') {
+      this.repository.reload()
+      if (action.mode === 'endless') {
+        const token = this.id()
+        let seed = this.now() >>> 0
+        for (const character of token) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0
+        this.select(createRun(generateCase(seed, this.repository.meta.practiceCompleted + 1, false, undefined, this.repository.meta.lastHand), 'endless', this.now(), token))
+      } else this.openDate(action.date ?? this.linkedDate ?? utcDate(this.now()), action.mode === 'daily-practice')
+    } else if (action.type === 'NEXT_CASE') {
+      this.dispatch({ type: 'START_CASE', mode: 'endless' }); return
+    } else if (action.type === 'RESUME_OFFICIAL') {
+      const run = this.repository.readOfficial(action.identity)
+      if (run) this.select(run)
+    } else if (action.type === 'RESUME_PRACTICE') {
+      if (this.repository.practice) this.select(this.repository.practice)
+    } else if (action.type === 'BACK_LOBBY') {
+      this.screen = 'lobby'; this.active = null; this.linkedDate = null; this.routeError = ''
+      this.repository.updateMeta({ active: null, pendingDaily: null })
+    } else if (action.type === 'START_TUTORIAL') {
+      this.screen = 'tutorial'
+    } else if (action.type === 'TUTORIAL_COMPLETE') {
+      if (this.screen === 'tutorial' && !this.repository.meta.tutorialComplete) {
+        this.repository.updateMeta({ tutorialComplete: true })
+        this.telemetry.emit('tutorial_complete', {})
+      }
+    } else if (action.type === 'END_TUTORIAL') {
+      if (this.screen !== 'tutorial') return
+      if (action.complete && !this.repository.meta.tutorialComplete) {
+        this.repository.updateMeta({ tutorialComplete: true })
+        this.telemetry.emit('tutorial_complete', {})
+      }
+      this.repository.updateMeta({ onboardingSeen: true })
+      if (this.active) this.screen = 'run'
+      else this.openDate(this.linkedDate ?? utcDate(this.now()))
+    } else if (action.type === 'ACK_MIGRATION') {
+      this.repository.updateMeta({ migrationAcknowledged: true })
+    } else if (action.type === 'SHARE_INTENT' || action.type === 'SHARE_SUCCESS' || action.type === 'SUPPORT_CLICK') {
+      let target = this.active?.id === action.runId ? this.active : Object.values(this.repository.officials).find((run) => run.id === action.runId) ?? (this.repository.practice?.id === action.runId ? this.repository.practice : null)
+      if (target?.mode === 'daily') target = this.repository.readOfficial(target.identity!) ?? target
+      if (!target?.result) return
+      if (action.type === 'SUPPORT_CLICK') this.record('support_click', target)
+      else {
+        const marker = action.type === 'SHARE_INTENT' ? 'intent' : 'success'
+        if (!target.markers[marker]) {
+          const saved = this.repository.save({ ...target, markers: { ...target.markers, [marker]: true } })
+          if (this.active?.id === saved.id) this.active = saved
+          this.record(marker === 'intent' ? 'share_intent' : 'share_success', saved, { within_24h_of_result: within24Hours(saved.result!.completedAt, this.now()) })
+        }
+      }
+    } else if (this.active && this.screen === 'run') {
+      const durable = this.active.mode === 'daily' ? this.repository.readOfficial(this.active.identity!) : null
+      if (durable?.result) this.active = durable
+      else {
+        const nextAction = action.type === 'REUSE_LAST_HAND' ? { type: 'SET_PICKS' as const, picks: this.repository.meta.lastHand } : action
+        const before = this.active
+        let next = reduceRun(before, nextAction, this.now())
+        if (next !== before) {
+          next = this.repository.save(next)
+          if (next.usedIds.length > before.usedIds.length) next = this.activate(next)
+          if (action.type === 'CONFIRM_HAND' && next.phase === 'board') this.repository.updateMeta({ lastHand: [...next.hand] })
+          this.active = next
+        }
       }
     }
-
-    case 'PICK_ALIBI': {
-      if (!state.alibiMode) return state
-      const picks =
-        state.alibiPicks.includes(action.n) ? [] : [action.n]
-      return { ...state, alibiPicks: picks }
-    }
-
-    case 'CANCEL_ALIBI':
-      return { ...state, alibiMode: false, alibiPicks: [] }
-
-    case 'ACCUSE':
-      return { ...state, accusation: action.n }
-
-    case 'CANCEL_ACCUSE':
-      return { ...state, accusation: null }
-
-    case 'CONFIRM_ACCUSE': {
-      if (!state.caseFile || state.accusation == null) return state
-      const win = state.accusation === state.caseFile.culprit
-      const probesUsed = state.usedIds.length
-      const stars = win ? starsFor(probesUsed, state.caseFile.par) : 0
-      const stats: Stats = {
-        streak: win ? state.stats.streak + 1 : 0,
-        bestStreak: win
-          ? Math.max(state.stats.bestStreak, state.stats.streak + 1)
-          : state.stats.bestStreak,
-        casesClosed: state.stats.casesClosed + 1,
-        totalStars: state.stats.totalStars + stars,
-        dailyDoneFor:
-          state.mode === 'daily' ? todayDateKey() : state.stats.dailyDoneFor,
-      }
-      persistStats(stats)
-      return {
-        ...state,
-        phase: 'verdict',
-        result: {
-          win,
-          stars,
-          probesUsed,
-          par: state.caseFile.par,
-          guess: state.accusation,
-        },
-        stats,
-      }
-    }
-
-    case 'DISMISS_RESOLUTION':
-      return { ...state, resolution: null, confession: null }
-
-    case 'NEXT_CASE': {
-      const caseNumber = state.stats.casesClosed + 1
-      const caseFile = makeCase('endless', caseNumber, state.stats.lastHand ?? [])
-      return {
-        ...initialState(),
-        stats: state.stats,
-        phase: 'draft',
-        mode: 'endless',
-        caseFile,
-        chipsLeft: CHIPS_PER_CASE,
-        picks: [],
-      }
-    }
-
-    case 'BACK_LOBBY':
-      return { ...initialState(), stats: state.stats }
-
-    default:
-      return state
+    this.publish()
   }
 }
 
 export function useGame() {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState)
-
+  const [controller] = useState(() => new GameController({
+    storage: browserStorage(), search: window.location.search, telemetry: browserTelemetry(),
+    lock: navigator.locks ? (name, work) => navigator.locks.request(name, work) : undefined,
+  }))
+  const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   useEffect(() => {
-    // Re-persist whenever a case ends so mid-case refreshes keep old stats.
-    if (state.phase === 'verdict') persistStats(state.stats)
-  }, [state.phase, state.stats])
-
-  const startCase = useCallback((mode: Mode) => dispatch({ type: 'START_CASE', mode }), [])
-  return { state, dispatch, startCase }
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+    const onStorage = (event: StorageEvent) => { if (event.key === null || event.key.startsWith(PREFIX)) controller.reconcile() }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('focus', controller.reconcile)
+    const timer = setInterval(controller.tick, 1000)
+    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('focus', controller.reconcile); clearInterval(timer) }
+  }, [controller])
+  return { state, dispatch: controller.dispatch }
 }
 
-// Exposed for tests / debugging.
-export const _internals = { buildDeal, starsFor }
+export const _internals = { buildDeal }

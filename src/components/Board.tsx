@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { CHIPS_PER_CASE } from '../engine/caseGen'
 import { getProbe } from '../engine/probes'
 import { isLiveStatic } from '../engine/fairness'
@@ -7,6 +7,7 @@ import type { Action, GameState } from '../game/store'
 import type { SuspectState } from './SuspectCard'
 import { SuspectCard } from './SuspectCard'
 import { ProbeCard } from './ProbeCard'
+import { ProbeHelp } from './ProbeHelp'
 
 interface Props {
   state: GameState
@@ -22,8 +23,6 @@ export function Board({ state, dispatch }: Props) {
     if (!state.resolution) return
     if (state.resolution.eliminated.length > 0) sfx.walk()
     else sfx.whisper()
-    const t = setTimeout(() => dispatch({ type: 'DISMISS_RESOLUTION' }), 2600)
-    return () => clearTimeout(t)
   }, [state.resolution, dispatch])
 
   useEffect(() => {
@@ -85,8 +84,8 @@ export function Board({ state, dispatch }: Props) {
         <div className="plate">
           <span className="plate__rivet" aria-hidden />
           <span className="plate__text">
-            CASE №{String(cf.caseNumber).padStart(4, '0')}
-            <em>{cf.isDaily ? ' · THE DAILY' : ' · DOCKET'}</em>
+            {cf.dateKey ?? `CASE №${String(cf.caseNumber).padStart(4, '0')}`}
+            <em>{state.mode === 'daily' ? ' · OFFICIAL DAILY · v2' : state.mode === 'daily-practice' ? ' · PRACTICE · v2' : ' · ENDLESS PRACTICE'}</em>
           </span>
           <span className="plate__rivet plate__rivet--r" aria-hidden />
         </div>
@@ -105,9 +104,7 @@ export function Board({ state, dispatch }: Props) {
           <span>
             <strong>{aliveCount}</strong> in the room
           </span>
-          <span className="board__par">
-            par <strong>{cf.par}</strong>
-          </span>
+          <span>{state.chipsLeft} / 5 probes left</span>
         </div>
       </header>
 
@@ -143,7 +140,7 @@ export function Board({ state, dispatch }: Props) {
         </div>
       )}
 
-      <main className="lineup" role="list">
+      <div className="lineup" aria-label="Suspect lineup">
         {cf.lineup.map((n, i) => (
           <SuspectCard
             key={n}
@@ -153,7 +150,7 @@ export function Board({ state, dispatch }: Props) {
             onClick={() => suspectClick(n)}
           />
         ))}
-      </main>
+      </div>
 
       <footer className="hand">
         <div className="hand__cards">
@@ -163,12 +160,14 @@ export function Board({ state, dispatch }: Props) {
               id={id}
               used={state.usedIds.includes(id)}
               blocked={probeBlocked(id)}
+              unavailable={state.chipsLeft <= 0 || state.pending || state.accusation !== null || (state.alibiMode && id !== 'alibi')}
               onClick={() => probeUse(id)}
             />
           ))}
         </div>
         <p className="hand__hint">Click a survivor to accuse. Probes ask one true question each.</p>
       </footer>
+      <ProbeHelp ids={state.hand} />
 
       {state.accusation != null && state.phase === 'board' && (
         <ConfirmAccuse state={state} dispatch={dispatch} />
@@ -206,12 +205,22 @@ function ConfirmAccuse({
   state: GameState
   dispatch: (a: Action) => void
 }) {
+  const dialog = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    dialog.current?.querySelector<HTMLButtonElement>('.dialog__row button')?.focus()
     function esc(e: KeyboardEvent) {
       if (e.key === 'Escape') dispatch({ type: 'CANCEL_ACCUSE' })
+      if (e.key === 'Tab') {
+        const buttons = [...(dialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
+        if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
+      }
     }
     window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
+    return () => { window.removeEventListener('keydown', esc); previous?.focus() }
   }, [dispatch])
 
   const n = state.accusation!
@@ -224,7 +233,7 @@ function ConfirmAccuse({
       aria-label="Confirm accusation"
       onClick={() => dispatch({ type: 'CANCEL_ACCUSE' })}
     >
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="dialog" ref={dialog} onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           className="dialog__close"
@@ -236,7 +245,7 @@ function ConfirmAccuse({
         <h3>Slam the stamp?</h3>
         <p className="dialog__big">{n}</p>
         {!alive && <p className="dialog__warn">That number already walked out.</p>}
-        <p>You get one accusation. Wrong name clears your streak.</p>
+        <p>{state.mode === 'daily' ? 'One official accusation for this case date. A wrong name records a missed case.' : 'One accusation in this practice run. Your daily record is unchanged.'}</p>
         <div className="dialog__row">
           <button
             type="button"
@@ -251,7 +260,7 @@ function ConfirmAccuse({
           <button
             type="button"
             className="btn btn--red"
-            disabled={!alive}
+            disabled={!alive || state.pending}
             onClick={() => {
               sfx.stamp()
               dispatch({ type: 'CONFIRM_ACCUSE' })

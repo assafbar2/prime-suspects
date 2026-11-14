@@ -1,139 +1,75 @@
 # Prime Suspects
 
-**Twelve numbers. One culprit. Five probes.**
+**A daily detective puzzle where the suspects are numbers.** Twelve numbers. One culprit. Five probes.
 
-A noir deduction game disguised as a math toy. A lineup of twelve suspects stands
-in the room. One of them did it. Every probe you play asks one *true* question —
-*is it a perfect square? does it wear a seven? is it prime, literally?* — and every
-suspect on the wrong side of the answer walks out. Cross off ten innocents,
-name the culprit, and don't spend all five chips doing it.
+Choose six questions, interrogate the lineup, and make one accusation. The hidden culprit answers truthfully; numbers that disagree leave. Free daily and endless practice, no account, optional sound. A three-move teaching case introduces the deduction before the full draft.
 
-**▶ Play it now: [assafbar2.github.io/prime-suspects](https://assafbar2.github.io/prime-suspects/)**
-(runs on GitHub Pages, straight from this repo)
+**Canonical play / outgoing invitations:** https://prime-suspects.vercel.app/
 
-Or run it yourself: `npm install && npm run dev`, or deploy the `dist/` anywhere
-static. No accounts, no analytics, no server — everything runs in your browser
-and your progress stays on your device.
+GitHub Pages remains supported at https://assafbar2.github.io/prime-suspects/. There is no redirect. Saves belong to each origin and do not migrate between sites or devices. **This working tree is a local release candidate, not published.**
 
-## The loop
+## Run and verify
 
-| Phase | What happens |
-| --- | --- |
-| **Draft** | Eleven probe cards hit the felt; you keep six. Beat cops are blunt. Detectives ask classic questions. Specialists are surgical. Wildcards bend the rules. In a hurry? *🎲 Surprise me* deals you a random six. Returning? *♻️ Last game's kit* re-selects the six you kept last time — the dealer slips them back into every new deal for you. |
-| **Interrogate** | Spend chips to play probes. The culprit answers honestly, the dossier records the fact, and every suspect on the other side of it is stamped out. Watch the room thin out. |
-| **Accuse** | Click a survivor, slam the stamp. Right name closes the case; wrong name clears your streak. |
+Node 22 (the Pages workflow version), npm, and a browser:
 
-**Par** — printed beside the chips — is the chip count an optimal interrogation
-needs for this specific lineup, computed by a balanced-split solver before the
-case is dealt. It sets the bar:
+```sh
+npm ci
+npm run dev
+npm test
+npm run build
+npx playwright install chromium
+npm run test:browser
+```
 
-| Chips spent | Verdict |
-| --- | --- |
-| Under par | ★★★ |
-| Exactly par | ★★ |
-| More, but solved | ★ |
-| Wrong accusation | none, and your streak resets |
+The browser suite serves `dist` over local HTTP, blocks external application requests, and exercises both `/` and `/nested/`. Build before running it. It writes practice-only screenshots to `docs/assets/`. `npm run preview:static` starts the same read-only local preview on port 4173.
 
-## Reading the table
+## Daily rules and saves
 
-- **The dossier strip** keeps every established fact visible as badges — `Wears a seven? → YES`. Survivors visibly share the whole dossier; accusing means choosing among numbers that match all of it.
-- **Banners state both halves**: *"Culprit answers YES … everyone who would answer NO walks:"* followed by the names.
-- **DEAD probes cost nothing.** A card whose question can no longer split the survivors is stamped DEAD and refuses your chip — asking "Above 500?" when everyone left is already above 500 wastes nothing, because you can't.
-- **Survivors share traits.** If two sevens remain after "wears a seven?", that's the point: they match the culprit's confession. The next split has to come from somewhere else.
+- An official daily is **`v2:YYYY-MM-DD` in UTC**. It resets at 00:00 UTC, with a local-time translation and countdown shown in the lobby and results.
+- `generateDaily(date)` hashes the versioned identity. It has no player kit, stats, local case counter, or random clock input. The lineup, culprit, ordered deal, case number, and catalog reference are identical for that identity.
+- Opening a daily resumes its draft/board or reopens its first stored result. Explicit practice replay cannot change that result. Old unfinished officials remain available from the lobby while a newer case or practice is played.
+- Draft, hand, resolved probes (including alibi targets), chips, survivors, facts, wildcard state, pending accusation, and result are persisted. Loaded histories are replayed through the same predicates to restore derived data rather than trusting saved survivors or scores.
+- Results are stored separately per identity, not counted by incrementing a daily counter. Finalization rereads durable results and uses an exclusive same-origin Web Lock when available. The fallback can select the last valid conflicting write; storage events reconcile both tabs and still count one date. Browser-local saves are **not cheat-proof**, cross-device, or server-authoritative.
+- A case that crosses midnight belongs to its immutable starting case date. Actual completion time is stored separately for measurement.
+- Current streak anchors on today's result if one exists, otherwise yesterday. It counts winning case dates backward until a loss or missing date. Best streak is the longest consecutive winning-date chain. Late official wins can fill gaps; old losses cannot erase newer chains. Practice has no effect.
+- `prime-suspects:v1` is retained unchanged. Old mixed-mode totals appear as legacy / overall, never fabricated v2 daily results. A one-time notice explains the new record.
+- Blocked, full, unavailable, malformed, or unsupported storage switches to session-only play with a notice. Bad bytes are not overwritten. No durable attempt limit is promised then.
 
-## Explain it like I'm 10
+## Scoring, drafting, and fairness
 
-**You're a detective in a room with 12 numbers. One of them did a crime. Find it!**
+Results and invitations compare **solved/missed + probes used out of five**. No par-based stars are awarded in this release. Existing legacy star totals remain readable. `greedyPar` is retained as an engine reference over the full static catalog, not an optimal solver or a promise about any selected hand.
 
-1. **Pick your tools (the draft).** You get cards that each ask a yes/no question
-   about the mystery number: *"Are you even?" "Do you have a 7 in you?" "Are you
-   a perfect square?"* Pick your favorite 6.
+Manual six-card drafting and the random-kit shortcut remain. A deterministic starter kit scores how questions separate the visible lineup, with stable probe-ID tie-breaks; its helper never accepts the culprit. It selects cards without starting the board and promises no perfect solve. Endless practice still offers the last-used kit through the existing generator/fairness checks.
 
-2. **Ask questions (spend chips).** You have 5 chips. Play a card and the mystery
-   number **answers honestly**.
-   - If the answer is YES → every number that would answer NO gets crossed off. Bye!
-   - If the answer is NO → every number that would answer YES gets crossed off. Bye!
+The existing seeded generator and best/worst draft fairness checks are retained. The solver checks available sequences for a hand, not that any arbitrary order of player actions must solve it. Existing engine/fairness tests are unchanged.
 
-3. **Why this works:** every question cuts the room into "matches" and "doesn't
-   match." The culprit always stays (it's telling the truth!), but a bunch of
-   innocent numbers leave. Ask smart questions and the room gets tiny fast.
+## Invitations
 
-4. **Catch the culprit.** When only one number is left — or when you're ready to
-   take a risk — point at it and stamp **ACCUSED**. Right? ★★★ Wrong? Streak gone.
+`?daily=YYYY-MM-DD&v=2` names one exact daily. Supported links prefer a stored official result, then an unfinished official run. Otherwise today opens official play and the preceding seven UTC dates open unranked practice. Future, malformed, older, or unsupported-version links explain the problem; they never silently substitute a case. Saved older officials remain resumable from the lobby.
 
-**The secret trick:** good questions split the remaining suspects *in half*.
-Asking "are you above 500?" when everyone left is already above 500 is useless —
-the card goes DEAD and costs you nothing. Asking "are you divisible by 7?" when
-two suspects are left and only one appears in the 7 times-table… that's how you
-catch the criminal.
+Only `utm_source=player_share&utm_medium=result` becomes a source category. It persists locally through teaching/drafting until a meaningful real-game start, then is consumed. Arbitrary query data is ignored. Daily practice says **PRACTICE**; endless says **PRACTICE · ENDLESS** and links to the homepage, not an exact replay. Native share and explicit copy coexist. Cancellation does not copy. Clipboard failure exposes selectable text. The static 1200×630 preview has no solution.
 
-That's the whole game: **ask half-questions, watch the room shrink, catch your
-number.**
+## Privacy and optional integrations
 
-## From the culprit's chair
+At inspected HEAD `2a56b51`, source and dependencies did **not** mount Vercel Analytics; the deployed Vercel bundle inspected on November 14, 2026 **did** include it. They were different builds. This release uses one optional `@vercel/analytics` integration, not two SDKs.
 
-I am one of twelve numbers in this room, and I am the one you want. The house
-compels me to answer every question you put to me, and I am not permitted to
-lie. That is my weakness, and your method.
+`VITE_CUSTOM_EVENTS=false` by default. No analytics script is injected in that configuration. Explicitly enabling it loads Vercel Web Analytics for custom events and base pageviews; an eligible plan and dashboard setup are owner prerequisites, not verified here. Event fields are allowlisted and analytics URLs normalized to the canonical homepage. No local run ID, culprit, answer, arbitrary query, email, or fingerprint is sent by the adapter. Failure never blocks play. Provider transport and hosting request logs still apply. `VITE_TELEMETRY_DEBUG=true` logs bounded events only in a development build; that is not a live dashboard.
 
-Each of your answers becomes a public fact about me — posted to the dossier,
-plain as a nametag. And with every fact, the room loses everyone who doesn't
-match it. What survives your five questions is my shadow: the set of numbers
-indistinguishable from me given everything you chose to ask. If your questions
-were lazy — things half the room could answer identically — my shadow is
-crowded, and you are guessing among my twins. If you split us cleanly each time,
-the shadow narrows until it holds a single number. Me.
+System fonts avoid external font requests. A validated owner-supplied HTTPS `VITE_SUPPORT_URL` shows an optional external donation link only after a real result. It is hidden otherwise. No payment infrastructure or gameplay entitlement is included.
 
-So understand what winning actually is: not intuition, not luck — bookkeeping.
-You are counting the bits of evidence I surrender, one honest answer at a time,
-until the arithmetic of the room leaves nowhere to stand.
+See [metrics definitions](docs/METRICS.md), [owner launch checklist](docs/LAUNCH.md), [press kit](docs/PRESS-KIT.md), and [verification handoff](docs/HANDOFF.md).
 
-## The probes (~30)
+## HTML5 distribution
 
-- **Beat cops** — even? above 500? ends in 0/5? odd digit sum? wears a seven?
-- **Detectives** — ÷3 ÷7 ÷11 · perfect square · palindrome · digits strictly climbing · head taller than tail · digit sum ÷9 · prime · all digits distinct · repdigit
-- **Specialists** — perfect cube · power of two · triangular · Fibonacci · semiprime · square-free · abundant · ≡1 mod 4 · emirp (reverses into another prime)
-- **Wildcards** — the **Median Trap** (guaranteed near-half cut of whoever remains), the **Alibi** (name one suspect: innocent → they walk alone; guilty → everyone else walks), the **Confessor** (one true dossier line about the culprit; nobody leaves)
+```sh
+npm run assets:social
+npm run package:html5
+unzip -q release/prime-suspects-html5.zip -d /tmp/prime-suspects-unpacked
+SERVE_DIR=/tmp/prime-suspects-unpacked npm run test:browser -- --grep "root and nested"
+```
 
-The depth: every test eliminates a *structured* set — all multiples, all squares,
-all palindromes — so good play is picking the probe that splits the survivors
-closest to half. Information theory by instinct, hidden inside a detective game.
-
-## Fairness & determinism
-
-Generation enforces two provable guarantees on every case, tested per seed:
-
-- **BEST — a solution always exists.** Some six-card draft can narrow the lineup
-  to exactly the culprit within the chip budget (`BEST_DRAFT_TARGET = 1`).
-- **WORST — clumsiness has a floor.** Even the worst possible draft narrows the
-  room to at most four suspects (`WORST_DRAFT_TARGET = 4`). Dead-probe blocking
-  means you never burn a chip getting there.
-
-Plus:
-
-- Cases are generated from a seed by a pure function (`src/engine/caseGen.ts`)
-- The **Daily Case** hashes today's date into the seed — everyone gets the same file, one attempt per day
-- **Par** comes from a greedy balanced-split solver over the full catalog, so stars mean the same thing everywhere
-- Your kept kit is threaded through the same fairness checks — favorite probes can't make a case unsolvable
-- Endless cases use fresh seeds from wall-clock entropy
+Packaging requires the system `zip` utility; extraction uses `unzip`. It stages sorted files with normalized timestamps and creates `release/prime-suspects-html5.zip` with `index.html` at the root and relative asset paths. It rebuilds with remote telemetry and support links disabled. The included social PNG is already generated; Chromium is only required to regenerate it or run browser tests. Identical source/build-date inputs produce the same package; the visible build date otherwise changes on a different day. Serve over HTTP. Double-click `file://` and offline reload of a previously hosted page are not supported; there is no service worker.
 
 ## Stack
 
-Vite · React 19 · TypeScript strict · Vitest (engine fully tested) · zero runtime dependencies beyond React · procedural WebAudio sound (no audio assets) · all graphics are CSS/SVG vectors, sharp at any DPI.
-
-```bash
-npm install
-npm run dev        # local play
-npm test           # engine suite
-npm run build      # production bundle to dist/
-```
-
-## Design notes
-
-The house style is an interrogation room run by a casino: baize felt, brass
-plaques, ivory suspect cards with engraved numbers, oxblood stamps. Suspects are
-crossed off with a slammed CROSSED OUT stamp; closing a case brings down the
-CASE CLOSED seal. Sound is synthesized live — card flicks, stamp thuds, a small
-brass fanfare — and mutable from the corner toggle.
-
-*Every number is innocent until proven composite.*
+Vite + React + TypeScript + Vitest, with Playwright acceptance tests. Browser-only game logic; no backend, accounts, LLM calls, payments, leaderboard, or new framework. Green felt, brass, ivory, and procedural optional WebAudio remain the visual and sound language.

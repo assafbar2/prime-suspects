@@ -2,6 +2,7 @@ import { intIn, mulberry32, sampleWithoutReplacement, shuffled, type Rng } from 
 import { PROBE_BY_ID, STATIC_PROBES, getProbe, type ProbeDef } from './probes'
 import { CHIPS_PER_CASE, HAND_SIZE, LINEUP_SIZE, BEST_DRAFT_TARGET, WORST_DRAFT_TARGET } from './constants'
 import { bestDraftSurvivors, worstDraftSurvivors } from './fairness'
+import { dailyIdentity, daysBetween, utcDate } from '../game/dates'
 
 export { CHIPS_PER_CASE, HAND_SIZE, LINEUP_SIZE, BEST_DRAFT_TARGET, WORST_DRAFT_TARGET }
 
@@ -14,7 +15,7 @@ export interface CaseFile {
   culprit: number
   /** Cards dealt for drafting (player picks a hand from these) */
   deal: string[]
-  /** Greedy-optimal probe count for a perfect run */
+  /** Catalog-wide greedy reference; not a bound for the selected kit. */
   par: number
 }
 
@@ -146,7 +147,7 @@ export function generateCase(
     const culprit = lineup[intIn(rng, 0, lineup.length - 1)]
     const { par } = greedyPar(lineup)
     if (par < 2 || par > CHIPS_PER_CASE - 1) continue
-    const deal = buildDeal(rng, preferred)
+    const deal = buildDeal(rng, isDaily ? [] : preferred)
     // Fairness guarantees:
     //  - BEST: some six-card draft can crack the case to exactly one suspect
     //  - WORST: even the clumsiest draft narrows the room to ≤ WORST_DRAFT_TARGET
@@ -179,10 +180,11 @@ export function generateCase(
 }
 
 export function todayDateKey(now = new Date()): string {
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  return utcDate(now)
+}
+
+export function generateDaily(date: string): CaseFile {
+  return generateCase(dailySeed(dailyIdentity(date)), daysBetween('1970-01-01', date), true, date)
 }
 
 export function dailySeed(dateKey: string): number {

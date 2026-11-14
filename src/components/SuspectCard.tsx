@@ -17,7 +17,7 @@ function SuspectCardInner({ value, index, state, onClick }: Props) {
     state === 'accused' ? 'suspect--accused' : '',
   ].join(' ')
   return (
-    <button type="button" className={cls} onClick={onClick} aria-label={`Suspect number ${value}`}>
+    <button type="button" className={cls} onClick={onClick} disabled={state === 'crossed'} aria-label={`Suspect number ${value}${state === 'crossed' ? ', eliminated' : ''}`}>
       <span className="suspect__pip suspect__pip--tl">{index + 1}</span>
       <span className="suspect__pip suspect__pip--br">{index + 1}</span>
       <span className="suspect__number">{value}</span>

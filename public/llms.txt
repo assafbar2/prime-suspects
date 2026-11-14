@@ -1,6 +1,6 @@
 # Prime Suspects
 
-> A noir deduction game disguised as a maths toy. Twelve numbered suspects stand in a lineup; one of them did it. Each probe you play asks one true question — is it a perfect square, does it wear a seven, is it prime — and every suspect on the wrong side of the answer walks out. Cross off ten innocents, name the culprit, and try not to spend all five chips doing it. Free, runs entirely in the browser, no account.
+> A daily detective puzzle where the suspects are numbers. Twelve suspects, one culprit, five probes. Choose six question cards, eliminate numbers that disagree with the hidden culprit's truthful answers, and make one accusation. Free daily and endless practice in your browser, no account.
 
 ## When to use this site
 
@@ -12,16 +12,17 @@ Poor matches: anything needing an account, multiplayer, or an API. None exist. T
 
 ## How it plays
 
-- **Draft.** Eleven probe cards are dealt; you keep six. Beat cops are blunt, detectives ask classic questions, specialists are surgical, wildcards bend the rules.
+- **Draft.** Keep six question cards from the deal, manually or with a deterministic starter kit. A three-action teaching case is available first.
 - **Interrogate.** Spend chips to play probes. The culprit answers honestly, the dossier records the fact, and every suspect contradicted by it is stamped out.
-- **Accuse.** Name a survivor. The right name closes the case; the wrong one clears your streak.
-- **Par** is the chip count an optimal interrogation needs for that specific lineup, computed by a balanced-split solver before the case is dealt. It is the bar to beat.
+- **Accuse.** Name a survivor. Results compare solved/missed plus probes used out of five. Practice does not change the official daily streak.
+- **Daily.** Version 2 dates use UTC and reset at 00:00 UTC. Browser-local snapshots resume progress and preserve one official result per date when storage is available. No server-authoritative anti-cheat is promised.
+- **Invitations.** Canonical links identify version/date; the preceding seven UTC dates support practice. No solution appears in share payloads.
 
 ## Where to play
 
 - [prime-suspects.vercel.app](https://prime-suspects.vercel.app/) — the canonical deployment.
-- [assafbar2.github.io/prime-suspects](https://assafbar2.github.io/prime-suspects/) — the same build on GitHub Pages, straight from the repo.
-- [Source on GitHub](https://github.com/assafbar2/prime-suspects) — MIT-licensed; `npm install && npm run dev` runs it locally.
+- [assafbar2.github.io/prime-suspects](https://assafbar2.github.io/prime-suspects/) — alternate Pages deployment; saves remain separate by origin and build versions can differ.
+- [Source on GitHub](https://github.com/assafbar2/prime-suspects) — `npm ci && npm run dev` runs it locally.
 
 ## Pages
 

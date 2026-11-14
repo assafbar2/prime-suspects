@@ -1,181 +1,67 @@
 import { useEffect, useState } from 'react'
-import { findSeparatingProbe } from '../engine/fairness'
 import { sfx } from '../audio/sfx'
+import { findSeparatingProbe } from '../engine/fairness'
+import { deliverShare, shareText, supportUrl } from '../game/sharing'
 import type { Action, GameState } from '../game/store'
+import { ResetTime } from './Lobby'
 
-interface Props {
-  state: GameState
-  dispatch: (a: Action) => void
-}
+export function Verdict({ state, dispatch }: { state: GameState; dispatch: (action: Action) => void }) {
+  const run = state.run!
+  const result = run.result!
+  const [status, setStatus] = useState('')
+  const [fallback, setFallback] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const support = supportUrl(import.meta.env.VITE_SUPPORT_URL)
+  const text = shareText(run)
+  const missed = result.win ? null : findSeparatingProbe(run.caseFile.culprit, result.guess)
+  useEffect(() => { if (result.win) sfx.fanfare(); else sfx.sting() }, [run.id, result.win])
 
-export function Verdict({ state, dispatch }: Props) {
-  const cf = state.caseFile!
-  const r = state.result!
-  const [shownStars, setShownStars] = useState(0)
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!r.win) return
-    const timers: ReturnType<typeof setTimeout>[] = []
-    for (let i = 0; i < r.stars; i++) {
-      timers.push(setTimeout(() => sfx.star(i), 500 + i * 380))
-      timers.push(setTimeout(() => setShownStars(i + 1), 500 + i * 380))
-    }
-    return () => timers.forEach(clearTimeout)
-  }, [r])
-
-  useEffect(() => {
-    if (r.win) sfx.fanfare()
-    else sfx.sting()
-  }, [r])
-
-  const perfect = r.win && r.stars === 3
-
-  function shareText(): string {
-    const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars)
-    const label = cf.isDaily ? `Daily ${cf.dateKey}` : `Case №${String(cf.caseNumber).padStart(4, '0')}`
-    return `Prime Suspects — ${label}\n${stars} · ${r.probesUsed}/5 chips (par ${r.par})${
-      state.stats.streak > 1 ? `\nStreak: ${state.stats.streak} 🔥` : ''
-    }`
+  async function share(method: 'native' | 'copy') {
+    setSharing(true)
+    dispatch({ type: 'SHARE_INTENT', runId: run.id })
+    const outcome = await deliverShare(text, method, {
+      share: navigator.share?.bind(navigator), copy: navigator.clipboard?.writeText.bind(navigator.clipboard),
+    })
+    if (outcome === 'success') {
+      dispatch({ type: 'SHARE_SUCCESS', runId: run.id })
+      setStatus(method === 'copy' ? 'Copied. Your invitation is ready to paste.' : 'Share request completed.'); setFallback(false)
+    } else if (outcome === 'fallback') {
+      setStatus('Sharing is unavailable here. Select and copy the invitation below.'); setFallback(true)
+    } else setStatus('Share cancelled. Nothing was copied.')
+    setSharing(false)
   }
 
-  async function copyShare() {
-    try {
-      await navigator.clipboard.writeText(shareText())
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
-  return (
-    <div className="verdict">
-      <div className={`verdict__stamp ${r.win ? 'is-win' : 'is-lose'}`}>
-        <span>{r.win ? 'CASE CLOSED' : 'MISTRIAL'}</span>
-      </div>
-
-      <h2 className="verdict__headline">
-        {r.win
-          ? perfect
-            ? 'Flawless interrogation.'
-            : 'The culprit confessed.'
-          : 'You named the wrong number.'}
-      </h2>
-
-      <p className="verdict__reveal">
-        The culprit was <strong>{cf.culprit}</strong>
-        {r.win ? ' — exactly as you said' : `, not ${r.guess}`}
-      </p>
-
-      {!r.win && (
-        <LossExplain
-          culprit={cf.culprit}
-          guess={r.guess!}
-          dealt={cf.deal}
-          held={state.hand}
-          played={state.usedIds}
-        />
-      )}
-
-      <div className="verdict__stars" aria-label={`${r.stars} of 3 stars`}>
-        {[0, 1, 2].map((i) => (
-          <span key={i} className={`vstar ${i < shownStars ? 'is-lit' : ''}`} aria-hidden>
-            ★
-          </span>
-        ))}
-      </div>
-
-      <dl className="verdict__facts">
-        <div>
-          <dt>Chips spent</dt>
-          <dd>
-            {r.probesUsed} / 5 <em>(par {r.par})</em>
-          </dd>
-        </div>
-        <div>
-          <dt>Survivors at accusation</dt>
-          <dd>{state.caseFile!.lineup.filter((n) => !new Set(state.crossedOff).has(n)).length}</dd>
-        </div>
-        <div>
-          <dt>Streak</dt>
-          <dd>
-            {state.stats.streak}
-            {state.stats.streak > 1 && <em> 🔥</em>}
-          </dd>
-        </div>
-      </dl>
-
+  return <div className="verdict">
+    <p className="eyebrow">{run.mode === 'daily' ? `Official daily · ${run.caseFile.dateKey} · v2` : run.mode === 'daily-practice' ? `PRACTICE · ${run.caseFile.dateKey} · v2` : 'PRACTICE · ENDLESS'}</p>
+    <div className={`verdict__stamp ${result.win ? 'is-win' : 'is-lose'}`}><span>{result.win ? 'CASE CLOSED' : 'CASE MISSED'}</span></div>
+    <h2 className="verdict__headline">{result.win ? 'You followed the evidence.' : 'Every case teaches you something.'}</h2>
+    <p className="verdict__reveal">The culprit was <strong>{run.caseFile.culprit}</strong>{result.win ? '.' : `, not ${result.guess}.`}</p>
+    <dl className="verdict__facts">
+      <div><dt>Probes used</dt><dd>{result.probesUsed} / 5</dd></div>
+      <div><dt>Outcome</dt><dd>{result.win ? 'Solved' : 'Missed'}</dd></div>
+      <div><dt>Daily streak</dt><dd>{state.stats.streak}</dd></div>
+    </dl>
+    <p>{run.mode === 'daily' ? state.notice ? 'This result is session-only and may not survive reload.' : 'Your official result is saved in this browser for this case date.' : 'Unranked practice. Your official daily result and streak are unchanged.'}</p>
+    {(run.facts.length > 0 || missed?.test) && <details className="probe-help"><summary>Review the evidence</summary>
+      {run.facts.length > 0 && <ul>{run.facts.map((fact, index) => <li key={index}>{fact}</li>)}</ul>}
+      {missed?.test && <p>One distinguishing question: <strong>{missed.label}</strong> The culprit answers {missed.test(run.caseFile.culprit) ? 'YES' : 'NO'}; your guess answers {missed.test(result.guess) ? 'YES' : 'NO'}. {run.hand.includes(missed.id) ? 'This question was in your kit.' : run.caseFile.deal.includes(missed.id) ? 'This question was in the deal.' : 'This catalog example was not in your deal.'}</p>}
+    </details>}
+    <section className="invitation" aria-label="Invite another detective">
+      <h3>Same mystery. A fresh pair of eyes.</h3><p>Invite someone to play. No answers in your invitation.</p>
       <div className="verdict__row">
-        <button type="button" className="btn btn--ghost" onClick={() => void copyShare()}>
-          {copied ? '✓ Copied' : 'Copy result'}
-        </button>
-        <button
-          type="button"
-          className="btn btn--gold"
-          onClick={() => {
-            sfx.click()
-            dispatch({ type: 'NEXT_CASE' })
-          }}
-        >
-          Next case →
-        </button>
-        <button
-          type="button"
-          className="btn btn--ghost"
-          onClick={() => {
-            sfx.click()
-            dispatch({ type: 'BACK_LOBBY' })
-          }}
-        >
-          Lobby
-        </button>
+        {typeof navigator.share === 'function' && <button className="btn btn--gold" disabled={sharing} onClick={() => void share('native')}>Share challenge</button>}
+        <button className="btn btn--gold" disabled={sharing} onClick={() => void share('copy')}>Copy result</button>
       </div>
+      <p role="status">{status}</p>
+      {fallback && <label className="share-fallback">Invitation text<textarea readOnly value={text} rows={6} onFocus={(event) => event.currentTarget.select()} /></label>}
+    </section>
+    <ResetTime />
+    <div className="verdict__row">
+      {run.caseFile.dateKey && <button className="btn btn--ghost" onClick={() => dispatch({ type: 'START_CASE', mode: 'daily-practice', date: run.caseFile.dateKey })}>Practice this case</button>}
+      {run.caseFile.dateKey !== state.today && <button className="btn btn--gold" onClick={() => dispatch({ type: 'START_CASE', mode: 'daily', date: state.today })}>Open today’s case</button>}
+      <button className="btn btn--ghost" onClick={() => dispatch({ type: 'NEXT_CASE' })}>Play endless practice</button>
+      <button className="btn btn--ghost" onClick={() => dispatch({ type: 'BACK_LOBBY' })}>Lobby</button>
     </div>
-  )
-}
-
-/**
- * On a mistrial, name the property that proves the accused number innocent:
- * the catalog probe whose truthful answer differs between culprit and guess.
- */
-function LossExplain({
-  culprit,
-  guess,
-  dealt,
-  held,
-  played,
-}: {
-  culprit: number
-  guess: number
-  dealt: string[]
-  held: string[]
-  played: string[]
-}) {
-  const sep = findSeparatingProbe(culprit, guess)
-  if (!sep || !sep.test) {
-    return (
-      <p className="verdict__tell">
-        Your number agreed with the culprit on every question in the deck — a true double. Bad
-        luck; even the house couldn’t have told them apart.
-      </p>
-    )
-  }
-  const truth = sep.test(culprit)
-  const yours = sep.test(guess)
-  let where: string
-  if (held.includes(sep.id) && !played.includes(sep.id)) {
-    where = 'You were holding it — unplayed.'
-  } else if (dealt.includes(sep.id)) {
-    where = 'It sat on the table, undealt.'
-  } else {
-    where = 'It wasn’t dealt tonight.'
-  }
-  return (
-    <p className="verdict__tell">
-      The tell you missed: <strong>{sep.label}</strong> — the culprit answers{' '}
-      <strong>{truth ? 'YES' : 'NO'}</strong>, your {guess} says{' '}
-      <strong>{yours ? 'YES' : 'NO'}</strong>. {where}
-    </p>
-  )
+    {support && <p className="support"><a href={support} target="_blank" rel="noopener noreferrer" onClick={() => dispatch({ type: 'SUPPORT_CLICK', runId: run.id })}>Support the game ↗</a><br /><small>Optional external donation. No gameplay advantages or future entitlements.</small></p>}
+  </div>
 }

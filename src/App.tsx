@@ -1,18 +1,32 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sfx } from './audio/sfx'
 import { Board } from './components/Board'
 import { Draft } from './components/Draft'
 import { Lobby } from './components/Lobby'
 import { Verdict } from './components/Verdict'
 import { useGame } from './game/store'
+import { Tutorial } from './components/Tutorial'
+import { beginOnboarding, firstMeaningfulMove } from './game/onboarding'
 
 export default function App() {
   const { state, dispatch } = useGame()
+  const [muted, setMuted] = useState(sfx.muted)
+  const stage = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (state.phase === 'lobby' && !state.meta.onboardingSeen) beginOnboarding()
+    if (state.usedIds.length) firstMeaningfulMove()
+  }, [state.phase, state.meta.onboardingSeen, state.usedIds.length])
+
+  useEffect(() => {
+    stage.current?.focus()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [state.phase, state.id])
 
   useEffect(() => {
     document.title =
       state.phase === 'board' && state.caseFile
-        ? `Case №${String(state.caseFile.caseNumber).padStart(4, '0')} · Prime Suspects`
+        ? `${state.mode === 'daily' ? 'Daily' : 'Practice'} ${state.caseFile.dateKey ?? state.caseFile.caseNumber} · Prime Suspects`
         : 'Prime Suspects'
   }, [state.phase, state.caseFile])
 
@@ -22,18 +36,25 @@ export default function App() {
       <div className="grain" aria-hidden />
       <div className="vignette" aria-hidden />
 
-      <button
+      <nav className="topbar" aria-label="Game controls">
+        {state.phase !== 'lobby' && <button className="btn btn--ghost btn--small" disabled={state.pending} onClick={() => dispatch({ type: 'BACK_LOBBY' })}>← Lobby</button>}
+        {state.phase !== 'tutorial' && <button className="btn btn--ghost btn--small" disabled={state.pending} onClick={() => dispatch({ type: 'START_TUTORIAL' })}>How to play</button>}
+        <button
         type="button"
         className="soundtoggle"
-        onClick={() => sfx.toggleMute()}
-        aria-label={sfx.muted ? 'Unmute sounds' : 'Mute sounds'}
-        title={sfx.muted ? 'Sound: off' : 'Sound: on'}
+        onClick={() => setMuted(sfx.toggleMute())}
+        aria-label={muted ? 'Turn sound on' : 'Turn sound off'}
+        aria-pressed={!muted}
+        title={muted ? 'Sound: off' : 'Sound: on'}
       >
-        {sfx.muted ? '🔇' : '🔊'}
-      </button>
+        {muted ? '🔇' : '🔊'}
+      </button></nav>
 
-      <main className="stage">
-        {state.phase === 'lobby' && <Lobby stats={state.stats} onStart={(m) => dispatch({ type: 'START_CASE', mode: m })} />}
+      <main className="stage" ref={stage} tabIndex={-1} aria-label="Prime Suspects game">
+        {state.notice && <p className="notice" role="status">{state.notice}</p>}
+        {state.meta.legacy && !state.meta.migrationAcknowledged && <section className="notice" aria-label="Daily record update"><p>The new UTC daily record starts with this release. Your legacy / overall totals are kept separately; the original save remains untouched.</p><button className="btn btn--ghost btn--small" onClick={() => dispatch({ type: 'ACK_MIGRATION' })}>Got it</button></section>}
+        {state.phase === 'lobby' && <Lobby state={state} dispatch={dispatch} />}
+        {state.phase === 'tutorial' && <Tutorial dispatch={dispatch} />}
         {state.phase === 'draft' && <Draft state={state} dispatch={dispatch} />}
         {state.phase === 'board' && <Board state={state} dispatch={dispatch} />}
         {state.phase === 'verdict' && <Verdict state={state} dispatch={dispatch} />}
@@ -44,7 +65,7 @@ export default function App() {
         <span aria-hidden>·</span>
         <span>v{__APP_VERSION__} · built {__BUILD_DATE__}</span>
         <span aria-hidden>·</span>
-        <span className="house__motto">the house always does the math</span>
+        <a href={`${import.meta.env.BASE_URL}privacy/`}>Privacy</a>
       </footer>
     </div>
   )

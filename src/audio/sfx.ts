@@ -6,15 +6,14 @@
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
-let muted = false
+let muted = true
 
 const MUTE_KEY = 'prime-suspects:muted'
 
-if (typeof localStorage !== 'undefined') {
-  muted = localStorage.getItem(MUTE_KEY) === '1'
-}
+try { muted = localStorage.getItem(MUTE_KEY) !== '0' } catch { muted = true }
 
 function ac(): AudioContext | null {
+  if (muted) return null
   if (typeof window === 'undefined') return null
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
